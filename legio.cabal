@@ -21,6 +21,7 @@ source-repository head
 
 library
   exposed-modules:
+      Control.Monad.Extra
       Data.Legio
       Data.Split
   other-modules:
@@ -38,6 +39,8 @@ library
 executable legio-exe
   main-is: Main.hs
   other-modules:
+      UI.ConsolePlayer
+      UI.Player
       Paths_legio
   hs-source-dirs:
       app

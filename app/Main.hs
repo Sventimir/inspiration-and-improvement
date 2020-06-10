@@ -5,11 +5,11 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT(..))
 import Data.Legio (Legio, Card(..))
 import qualified Data.Legio as Legio
-import Data.List (replicate, uncons)
+import Data.List (replicate)
 import System.Environment (getArgs)
-import System.IO (hFlush, stdout)
 import System.Random (StdGen, getStdGen)
-
+import UI.Player
+import UI.ConsolePlayer
 
 main :: IO ()
 main = do
@@ -30,12 +30,14 @@ mkLegio cohorts (a, d, r) = Legio.new 5 cohorts cards
 
 gameLoop :: Legio -> Legio -> IO ()
 gameLoop legio1 legio2 = do
-    displayStatus "Player 1" legio1
-    displayStatus "Player 2" legio2
+    let player1 = ConsolePlayer "Player 1"
+    let player2 = ConsolePlayer "Player 2"
+    displayStatus player1 legio1
+    displayStatus player2 legio2
     putStrLn ""
-    player1 <- selectCard "Player 1" legio1
-    player2 <- selectCard "Player 2" legio2
-    let (legio1', legio2') = Legio.resolve player1 player2
+    choice1 <- getCard player1 legio1
+    choice2 <- getCard player2 legio2
+    let (legio1', legio2') = Legio.resolve choice1 choice2
     case (Legio.isRouted legio1', Legio.isRouted legio2') of
         (True, True) -> do
             putStrLn "Both armies have been routed!"
@@ -61,37 +63,10 @@ gameLoop legio1 legio2 = do
 
         (False, False) -> gameLoop legio1' legio2'
 
-displayStatus :: String -> Legio -> IO ()
-displayStatus name legio = do
+displayStatus :: PlayerUI p => p -> Legio -> IO ()
+displayStatus player legio = do
     putStrLn (
-            name ++ " has got " ++ show (Legio.active legio) ++ " fighting cohorts and " ++
-            show (Legio.routed legio) ++ " retrerating ones."
+            name player ++ " has got " ++ show (Legio.active legio) ++
+            " fighting cohorts and " ++ show (Legio.routed legio) ++
+            " retrerating ones."
         )
-
-selectCard :: String -> Legio -> IO (Legio, Card)
-selectCard name legio = do
-    putStrLn (
-            name ++ ", your deck contains " ++ show (length $ Legio.deck legio) ++
-            " cards and you've already discarded " ++ show (length $ Legio.discard legio)
-        )
-    putStrLn ("Your hand is: " ++ show (Legio.hand legio))
-    getStdGen >>= getCard
-    where
-    getCard :: StdGen -> IO (Legio, Card)
-    getCard rand = do
-        putStr "Which card do you wish to play? [A/D/R]: "
-        cardSym <- getLine
-        let card = liftMaybe $ uncons cardSym >>= (Legio.cardFromSymbol . fst)
-        result <- runMaybeT $ evalRandT (lift card >>= Legio.playAndDraw legio) rand
-        case result of
-            Nothing -> do
-                putStrLn "Incorrect input!\n"
-                hFlush stdout
-                getCard rand
-            Just selection -> do
-                putStrLn "\n"
-                return selection
-
-
-liftMaybe :: Monad m => Maybe a -> MaybeT m a
-liftMaybe = MaybeT . return
