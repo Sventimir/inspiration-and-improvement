@@ -3,13 +3,18 @@ module Main where
 import Control.Monad.Random (RandT, evalRandT)
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT(..))
+
 import Data.Legio (Legio, Card(..))
 import qualified Data.Legio as Legio
 import Data.List (replicate)
+
 import System.Environment (getArgs)
 import System.Random (StdGen, getStdGen)
+
 import UI.Player
 import UI.ConsolePlayer
+import UI.DummyPlayer
+
 
 main :: IO ()
 main = do
@@ -31,7 +36,7 @@ mkLegio cohorts (a, d, r) = Legio.new 5 cohorts cards
 gameLoop :: Legio -> Legio -> IO ()
 gameLoop legio1 legio2 = do
     let player1 = ConsolePlayer "Player 1"
-    let player2 = ConsolePlayer "Player 2"
+    let player2 = DummyPlayer "Player 2"
     displayStatus player1 legio1
     displayStatus player2 legio2
     putStrLn ""
