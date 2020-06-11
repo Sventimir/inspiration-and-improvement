@@ -21,10 +21,13 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+    - attoparsec
     - MonadRandom
     - mtl
     - random-shuffle
+    - text
     - transformers
+    - transformers-either
 
 executables:
   legio-exe:
