@@ -40,7 +40,9 @@ instance PlayerUI AiPlayer where
                     fromIntegral deckD / fromIntegral deckCards,
                     fromIntegral deckR / fromIntegral deckCards
                 ]
-            (card, _) = maximumBy cmpWeights . zip [Attack, Defend, Rally] $ eval net inputs
+            (card, _) = maximumBy cmpWeights .
+                zipWith3 flattenUnavailable [Attack, Defend, Rally] [handA, handD, handR] $
+                eval net inputs
         in do
         r <- runMaybeT $ validate card
         case r of
@@ -53,6 +55,9 @@ instance PlayerUI AiPlayer where
         countCards (a, d, r) Defend = (a, succ d, r)
         countCards (a, d, r) Rally = (a, d, succ r)
         cmpWeights (_, l) (_, r) = compare l r
+        flattenUnavailable card handRatio result
+            | handRatio == 0 = (card, 0)
+            | otherwise = (card, result)
         fallback = do
             Just decision <- runMaybeT . validate . head $ Legio.hand legio
             return decision
