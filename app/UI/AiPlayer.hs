@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 module UI.AiPlayer (
     AiPlayer(..)
 ) where
@@ -14,10 +15,11 @@ import Data.Split (total, left, right)
 import UI.Player
 
 
-data AiPlayer = AiPlayer String (Network Double)
+data AiPlayer n a where
+    AiPlayer :: Network n => String -> n a -> AiPlayer n a
 
 
-instance PlayerUI AiPlayer where
+instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
     name (AiPlayer n _) = n
 
     selectCard (AiPlayer name net) enemy legio validate =

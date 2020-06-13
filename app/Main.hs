@@ -1,6 +1,6 @@
 module Main where
 
-import AI.Neuron (Network, readNetwork, sigmoid)
+import AI.Neuron (Network(..), NaiveNetwork, readNetwork)
 
 import Control.Monad.Random (RandT, evalRandT)
 import Control.Monad.Trans (lift)
@@ -13,7 +13,7 @@ import qualified Data.Legio as Legio
 import Data.List (replicate)
 
 import System.Environment (getArgs)
-import System.IO (IOMode(..), openFile, hClose)
+import System.IO (FilePath, IOMode(..), openFile, hClose)
 import System.Random (StdGen, getStdGen)
 
 import UI.Player
@@ -25,9 +25,7 @@ main :: IO ()
 main = do
     putStrLn "Welcome to LEGIO v. 0.2"
     [count, deck1, deck2] <- getArgs
-    netFile <- openFile "data/legio.ai" ReadMode
-    Right neural <- runEitherT $ readNetwork netFile sigmoid double
-    hClose netFile
+    neural <- loadNeuralNetwork "data/legio.ai"
     rand <- getStdGen
     (legio1, legio2) <- flip evalRandT rand $ do
         l1 <- mkLegio (read count) (read deck1)
@@ -41,7 +39,18 @@ mkLegio cohorts (a, d, r) = Legio.new 5 cohorts cards
     where
     cards = (replicate a Attack) ++ (replicate d Defend) ++ (replicate r Rally)
 
-gameLoop :: Network Double -> Legio -> Legio -> IO ()
+loadNeuralNetwork :: FilePath -> IO (NaiveNetwork Double)
+loadNeuralNetwork filename = do
+    netFile <- openFile filename ReadMode
+    result <- runEitherT $ readNetwork netFile double
+    hClose netFile
+    case result of
+        Right neural -> return neural
+        Left e -> do
+            putStrLn "Could not load AI!"
+            error e
+
+gameLoop :: Network n => n Double -> Legio -> Legio -> IO ()
 gameLoop neural legio1 legio2 = do
     let player1 = ConsolePlayer "Player 1"
     let player2 = AiPlayer "Player 2" neural
