@@ -23,7 +23,7 @@ import UI.AiPlayer
 
 main :: IO ()
 main = do
-    putStrLn "Welcome to LEGIO v. 0.1"
+    putStrLn "Welcome to LEGIO v. 0.2"
     [count, deck1, deck2] <- getArgs
     netFile <- openFile "data/legio.ai" ReadMode
     Right neural <- runEitherT $ readNetwork netFile sigmoid double
@@ -49,8 +49,9 @@ gameLoop neural legio1 legio2 = do
     displayStatus player2 legio2
     putStrLn ""
     choice1 <- getCard player1 (Legio.cohorts legio2) legio1
-    choice2 <- getCard player2 (Legio.cohorts legio1) legio2
+    choice2@(_, card) <- getCard player2 (Legio.cohorts legio1) legio2
     let (legio1', legio2') = Legio.resolve choice1 choice2
+    putStrLn ("Player 2 played: " ++ show card ++ ".\n")
     case (Legio.isRouted legio1', Legio.isRouted legio2') of
         (True, True) -> do
             putStrLn "Both armies have been routed!"
