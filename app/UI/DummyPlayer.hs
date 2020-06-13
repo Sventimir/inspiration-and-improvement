@@ -12,6 +12,6 @@ newtype DummyPlayer = DummyPlayer String
 instance PlayerUI DummyPlayer where
     name (DummyPlayer n) = n
 
-    selectCard (DummyPlayer n) legio validate = do
+    selectCard (DummyPlayer n) _ legio validate = do
         Just result <- runMaybeT . validate . head $ hand legio
         return result

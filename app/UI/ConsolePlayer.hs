@@ -19,7 +19,7 @@ newtype ConsolePlayer = ConsolePlayer String
 instance PlayerUI ConsolePlayer where
     name (ConsolePlayer n) = n
 
-    selectCard (ConsolePlayer n) legio validator = do
+    selectCard (ConsolePlayer n) _ legio validator = do
         putStrLn (
                 n ++ ", your deck contains " ++ show (length $ Legio.deck legio) ++
                 " cards and you've already discarded " ++ show (length $ Legio.discard legio)

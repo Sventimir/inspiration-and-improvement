@@ -6,6 +6,7 @@ module Data.Legio (
     shuffle,
     draw,
     playAndDraw,
+    cohorts,
     active,
     routed,
     deck,
