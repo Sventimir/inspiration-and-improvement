@@ -14,17 +14,17 @@ import System.IO (Handle)
 
 
 class Neuron n where
-    make :: Floating a => a -> [a] -> n a
+    make :: (Floating a, Ord a) => a -> [a] -> n a
     weights :: n a -> [a]
     bias :: n a -> a
     decide :: Floating a => n a -> [a] -> a
 
 class Network n where
-    eval :: Floating a => n a -> [a] -> [a]
-    networkParser :: Floating a => Parser a -> Parser (n a)
+    eval :: (Floating a, Ord a) => n a -> [a] -> [a]
+    networkParser :: (Floating a, Ord a) => Parser a -> Parser (n a)
     saveNetwork :: Show a => Handle -> n a -> IO ()
 
-readNetwork :: (Floating a, Network n) =>  Handle -> Parser a -> EitherT String IO (n a)
+readNetwork :: (Floating a, Ord a, Network n) =>  Handle -> Parser a -> EitherT String IO (n a)
 readNetwork file weightParser = do
     c <- liftIO $ hGetChunk file
     r <- liftIO $ parseWith (hGetChunk file) (networkParser weightParser) c

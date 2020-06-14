@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, GADTs #-}
 module AI.SimpleNetwork (
-    SimpleNetwork
+    SimpleNetwork(..)
 ) where
 
 import AI.Neuron
@@ -38,20 +38,20 @@ writeNetwork file (layer : more) = do
     hPutStrLn file "^"
     writeNetwork file more
 
-naiveNetworkParser :: Floating a => Neuron n => Parser a -> Parser (SimpleNetwork n a)
+naiveNetworkParser :: (Floating a, Ord a) => Neuron n => Parser a -> Parser (SimpleNetwork n a)
 naiveNetworkParser weight = do
     skip (== '^') <|> return ()
     layers <- many' $ parseLayer weight
     return $ SimpleNetwork layers
 
-parseLayer :: Floating a => Neuron n => Parser a -> Parser [n a]
+parseLayer :: (Floating a, Ord a) => Neuron n => Parser a -> Parser [n a]
 parseLayer weight = do
     neurons <- many' $ parseNeuron weight
     skip (== '^')
     skipSpace
     return neurons
 
-parseNeuron :: Floating a => Neuron n => Parser a -> Parser (n a)
+parseNeuron :: (Floating a, Ord a) => Neuron n => Parser a -> Parser (n a)
 parseNeuron weight = do
     b <- weight
     ws <- many' $ do
