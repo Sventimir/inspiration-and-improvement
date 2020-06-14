@@ -23,6 +23,7 @@ library
   exposed-modules:
       AI.Neuron
       AI.Neuron.Perceptron
+      AI.SimpleNetwork
       Control.Monad.Extra
       Data.Legio
       Data.Split

@@ -1,7 +1,8 @@
 module Main where
 
-import AI.Neuron (Network(..), SimpleNetwork, readNetwork)
+import AI.Neuron (Network(..), readNetwork)
 import AI.Neuron.Perceptron (SigmoidPerceptron)
+import AI.SimpleNetwork (SimpleNetwork)
 
 import Control.Monad.Random (RandT, evalRandT)
 import Control.Monad.Trans (lift)
@@ -53,8 +54,8 @@ loadNeuralNetwork filename = do
 
 gameLoop :: Network n => n Double -> Legio -> Legio -> IO ()
 gameLoop neural legio1 legio2 = do
-    let player1 = ConsolePlayer "Player 1"
-    let player2 = AiPlayer "Player 2" neural
+    let player1 = ConsolePlayer "Player"
+    let player2 = AiPlayer "Enenmy" neural
     displayStatus player1 legio1
     displayStatus player2 legio2
     putStrLn ""
