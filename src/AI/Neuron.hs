@@ -1,12 +1,9 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, GADTs #-}
 module AI.Neuron (
-    Neuron,
-    NaiveNetwork(..),
+    Neuron(..),
     Network(..),
-    sigmoid,
-    sigmoidNeuron,
-    readNetwork,
-    writeNetwork
+    SimpleNetwork(..),
+    readNetwork
 ) where
 
 import Control.Applicative ((<|>))
@@ -19,83 +16,66 @@ import Data.Text.IO (hGetChunk, hPutStr, hPutStrLn)
 import System.IO (Handle)
 
 
+class Neuron n where
+    make :: Floating a => a -> [a] -> n a
+    weights :: n a -> [a]
+    bias :: n a -> a
+    decide :: Floating a => n a -> [a] -> a
+
 class Network n where
-    eval :: Num a => n a -> [a] -> [a]
+    eval :: Floating a => n a -> [a] -> [a]
     networkParser :: Floating a => Parser a -> Parser (n a)
     saveNetwork :: Show a => Handle -> n a -> IO ()
 
-data Neuron a = Neuron {
-    activation :: a -> a,
-    bias :: a,
-    weights :: [a]
-}
+data SimpleNetwork n a where
+    SimpleNetwork :: Neuron n => [[n a]] -> SimpleNetwork n a
 
-data NaiveNetwork a = OutputLayer
-                    | NeuronLayer [Neuron a] (NaiveNetwork a)
-
-instance Network NaiveNetwork where
-    eval OutputLayer inputs = inputs
-    eval (NeuronLayer neurons more) inputs =
-        eval more $ map (evalNeuron inputs) neurons
+instance Neuron n => Network (SimpleNetwork n) where
+    eval (SimpleNetwork layers) inputs = feedForward layers inputs
         where
-        evalNeuron ins (Neuron { bias = b, activation = act, weights = ws }) =
-            act . (+ b) . sum $ zipWith (*) ins ws
+        feedForward [] inputs = inputs
+        feedForward (l : ls) inputs =
+            feedForward ls $ map (flip decide inputs) l
 
-    networkParser = naiveNetworkParser sigmoid
-    saveNetwork = writeNetwork
+    networkParser weight = do
+        skip (== '^') <|> return ()
+        layers <- many' $ parseLayer weight
+        return $ SimpleNetwork layers
 
-sigmoid :: Floating a => a -> a
-sigmoid x = 1 / (1 + exp (-x))
+    saveNetwork file (SimpleNetwork layers) = writeNetwork file layers
 
--- Derrivative of the sigmoid function.
-sigmoid' :: Floating a => a -> a
-sigmoid' x = let s = sigmoid x in s * (1 - s)
 
-sigmoidNeuron :: Floating a => a -> [a] -> Neuron a
-sigmoidNeuron b ws = Neuron {
-        bias = b,
-        weights = ws,
-        activation = sigmoid
-    }
-
-writeNetwork :: Show a => Handle -> NaiveNetwork a -> IO ()
-writeNetwork _ OutputLayer = return ()
-writeNetwork file (NeuronLayer neurons more) = do
-    mapM printNeuron neurons
+writeNetwork :: (Neuron n, Show a) => Handle -> [[n a]] -> IO ()
+writeNetwork _ [] = return ()
+writeNetwork file (layer : more) = do
+    mapM (hPutStr file . Text.intercalate "\t" . map (Text.pack . show) . weights) layer
     hPutStrLn file "^"
     writeNetwork file more
-    where
-    printNeuron (Neuron { weights = [] }) = return ()
-    printNeuron (Neuron { weights = (w : ws) }) = do
-        printWeight w
-        mapM (\w -> hPutStr file "\t" >> printWeight w) ws
-        hPutStr file "\n"
-    printWeight = hPutStr file . Text.pack . show
 
-readNetwork :: (Floating a,Network n) =>  Handle -> Parser a -> EitherT String IO (n a)
+readNetwork :: (Floating a, Network n) =>  Handle -> Parser a -> EitherT String IO (n a)
 readNetwork file weightParser = do
     c <- liftIO $ hGetChunk file
     r <- liftIO $ parseWith (hGetChunk file) (networkParser weightParser) c
     hoistEither $ eitherResult r
 
-naiveNetworkParser :: (a -> a) -> Parser a -> Parser (NaiveNetwork a)
-naiveNetworkParser act weight = do
+naiveNetworkParser :: Floating a => Neuron n => Parser a -> Parser (SimpleNetwork n a)
+naiveNetworkParser weight = do
     skip (== '^') <|> return ()
-    layers <- many' $ parseLayer act weight
-    return $ foldr NeuronLayer OutputLayer layers
+    layers <- many' $ parseLayer weight
+    return $ SimpleNetwork layers
 
-parseLayer :: (a -> a) -> Parser a -> Parser [Neuron a]
-parseLayer act weight = do
-    neurons <- many' $ parseNeuron act weight
+parseLayer :: Floating a => Neuron n => Parser a -> Parser [n a]
+parseLayer weight = do
+    neurons <- many' $ parseNeuron weight
     skip (== '^')
     skipSpace
     return neurons
 
-parseNeuron :: (a -> a) -> Parser a -> Parser (Neuron a)
-parseNeuron act weight = do
+parseNeuron :: Floating a => Neuron n => Parser a -> Parser (n a)
+parseNeuron weight = do
     b <- weight
     ws <- many' $ do
         skip (flip elem [' ', '\t'])
         weight
     endOfLine
-    return $ Neuron act b ws
+    return $ make b ws

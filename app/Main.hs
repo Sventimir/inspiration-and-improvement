@@ -1,6 +1,7 @@
 module Main where
 
-import AI.Neuron (Network(..), NaiveNetwork, readNetwork)
+import AI.Neuron (Network(..), SimpleNetwork, readNetwork)
+import AI.Neuron.Perceptron (SigmoidPerceptron)
 
 import Control.Monad.Random (RandT, evalRandT)
 import Control.Monad.Trans (lift)
@@ -39,7 +40,7 @@ mkLegio cohorts (a, d, r) = Legio.new 5 cohorts cards
     where
     cards = (replicate a Attack) ++ (replicate d Defend) ++ (replicate r Rally)
 
-loadNeuralNetwork :: FilePath -> IO (NaiveNetwork Double)
+loadNeuralNetwork :: FilePath -> IO (SimpleNetwork SigmoidPerceptron Double)
 loadNeuralNetwork filename = do
     netFile <- openFile filename ReadMode
     result <- runEitherT $ readNetwork netFile double
