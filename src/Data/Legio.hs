@@ -108,7 +108,7 @@ resolve (legio1, Attack) (legio2, Defend) = (
     )
 resolve (legio1, Attack) (legio2, Rally) = (
         rout 2 legio1,
-        kill 2 legio2
+        kill 4 legio2
     )
 resolve (legio1, Defend) (legio2, Attack) = (
         rout 1 legio1,
@@ -123,7 +123,7 @@ resolve (legio1, Defend) (legio2, Rally) = (
         rally 2 legio2
     )
 resolve (legio1, Rally) (legio2, Attack) = (
-        kill 2 legio1,
+        kill 4 legio1,
         rout 1 legio2
     )
 resolve (legio1, Rally) (legio2, Defend) = (
