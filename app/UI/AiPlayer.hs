@@ -27,8 +27,11 @@ instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
             ownCohorts = fromIntegral . total $ Legio.cohorts legio
             (handA, handD, handR) = foldl' countCards (0, 0, 0) $ Legio.hand legio
             (deckA, deckD, deckR) = foldl' countCards (0, 0, 0) $ Legio.deck legio
+            (eDisA, eDisD, eDisR) = eDiscarded
+            (eAllA, eAllD, eAllR) = eAll
             handCards = handA + handD + handR
             deckCards = deckA + deckD + deckR
+            eTotalInPlay = eDisA + eDisD + eDisR - eAllA - eAllD - eAllR
             inputs = [
                     ownCohorts / (enemyCohorts + ownCohorts),
                     (fightingCohorts $ Legio.cohorts legio) / ownCohorts,
@@ -40,7 +43,11 @@ instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
 
                     fromIntegral deckA / fromIntegral deckCards,
                     fromIntegral deckD / fromIntegral deckCards,
-                    fromIntegral deckR / fromIntegral deckCards
+                    fromIntegral deckR / fromIntegral deckCards,
+
+                    fromIntegral (eAllA - eDisA) / fromIntegral eTotalInPlay,
+                    fromIntegral (eAllD - eDisD) / fromIntegral eTotalInPlay,
+                    fromIntegral (eAllR - eDisR) / fromIntegral eTotalInPlay
                 ]
             (card, _) = maximumBy cmpWeights .
                 zipWith3 flattenUnavailable [Attack, Defend, Rally] [handA, handD, handR] $
