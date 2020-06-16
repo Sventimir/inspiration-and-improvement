@@ -59,8 +59,8 @@ gameLoop neural legio1 legio2 = do
     displayStatus player1 legio1
     displayStatus player2 legio2
     putStrLn ""
-    choice1 <- getCard player1 (Legio.cohorts legio2) legio1
-    choice2@(_, card) <- getCard player2 (Legio.cohorts legio1) legio2
+    choice1 <- getCard player1 (enemyFromLegio legio2) legio1
+    choice2@(_, card) <- getCard player2 (enemyFromLegio legio1) legio2
     let (legio1', legio2') = Legio.resolve choice1 choice2
     putStrLn ("Player 2 played: " ++ show card ++ ".\n")
     case (Legio.isRouted legio1', Legio.isRouted legio2') of

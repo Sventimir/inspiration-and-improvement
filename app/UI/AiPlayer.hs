@@ -22,8 +22,8 @@ data AiPlayer n a where
 instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
     name (AiPlayer n _) = n
 
-    selectCard (AiPlayer name net) enemy legio validate =
-        let enemyCohorts = fromIntegral $ total enemy
+    selectCard (AiPlayer name net) (Enemy eSplit eDiscarded eAll) legio validate =
+        let enemyCohorts = fromIntegral $ total eSplit
             ownCohorts = fromIntegral . total $ Legio.cohorts legio
             (handA, handD, handR) = foldl' countCards (0, 0, 0) $ Legio.hand legio
             (deckA, deckD, deckR) = foldl' countCards (0, 0, 0) $ Legio.deck legio
@@ -32,7 +32,7 @@ instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
             inputs = [
                     ownCohorts / (enemyCohorts + ownCohorts),
                     (fightingCohorts $ Legio.cohorts legio) / ownCohorts,
-                    fightingCohorts enemy / enemyCohorts,
+                    fightingCohorts eSplit / enemyCohorts,
 
                     fromIntegral handA / fromIntegral handCards,
                     fromIntegral handD / fromIntegral handCards,

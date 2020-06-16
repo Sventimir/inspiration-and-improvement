@@ -1,7 +1,9 @@
 module UI.Player (
+    Enemy(..),
     ValidChoice, -- opaque, as type system cannot ensure the choice is indeed valid
     Validator,
     PlayerUI(..),
+    enemyFromLegio,
     getCard
 ) where
 
@@ -9,22 +11,30 @@ import Control.Monad.Random (evalRandT)
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT(..))
 
-import Data.Legio (Card, Legio)
+import Data.Legio (Card, CardCount, Legio)
 import qualified Data.Legio as Legio
 import Data.Split (Split)
 
 import System.Random (StdGen, getStdGen)
 
 
+data Enemy = Enemy (Split Int) CardCount CardCount
+
+enemyFromLegio :: Legio -> Enemy
+enemyFromLegio l =
+    Enemy (Legio.cohorts l) (Legio.countCards $ Legio.discard l) (Legio.countCards allCards)
+    where
+    allCards = Legio.hand l ++ Legio.deck l
+
 newtype ValidChoice = ValidChoice (Legio, Card)
 type Validator = Card -> MaybeT IO ValidChoice
 
 class PlayerUI ui where
     name :: ui -> String
-    selectCard :: ui -> Split Int -> Legio -> Validator -> IO ValidChoice
+    selectCard :: ui -> Enemy -> Legio -> Validator -> IO ValidChoice
 
 
-getCard :: PlayerUI ui => ui -> Split Int -> Legio -> IO (Legio, Card)
+getCard :: PlayerUI ui => ui -> Enemy -> Legio -> IO (Legio, Card)
 getCard ui enemy legio = do
     ValidChoice c <- selectCard ui enemy legio validate
     return c

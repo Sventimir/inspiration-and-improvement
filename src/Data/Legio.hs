@@ -2,6 +2,7 @@ module Data.Legio (
     Card(..),
     cardFromSymbol,
     Legio,
+    CardCount,
     new,
     shuffle,
     draw,
@@ -14,13 +15,14 @@ module Data.Legio (
     hand,
     isDead,
     isRouted,
-    resolve
+    resolve,
+    countCards
 ) where
 
 import Control.Monad (mzero)
 import Control.Monad.Random (RandomGen, RandT)
 import Control.Monad.Trans.Maybe (MaybeT)
-import Data.List (delete, elem)
+import Data.List (delete, elem, foldl')
 import Data.Split
 import System.Random.Shuffle (shuffleM)
 
@@ -42,6 +44,7 @@ data Legio = Legio {
     deck, discard, hand :: [Card]
 } deriving (Eq, Show)
 
+type CardCount = (Int, Int, Int)
 
 new :: (RandomGen r, Monad m) => Int -> Int -> [Card] -> RandT r m Legio
 new handSize cohorts cards = do
@@ -131,3 +134,10 @@ resolve (legio1, Rally) (legio2, Rally) = (
         rally 2 legio1,
         rally 2 legio2
     )
+
+countCards :: [Card] -> CardCount
+countCards = foldl' classify (0, 0, 0)
+    where
+    classify (a, d, r) Attack = (succ a, d, r)
+    classify (a, d, r) Defend = (a, succ d, r)
+    classify (a, d, r) Rally  = (a, d, succ r)

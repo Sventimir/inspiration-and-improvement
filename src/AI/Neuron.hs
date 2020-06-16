@@ -29,3 +29,14 @@ readNetwork file weightParser = do
     c <- liftIO $ hGetChunk file
     r <- liftIO $ parseWith (hGetChunk file) (networkParser weightParser) c
     hoistEither $ eitherResult r
+
+-- A cost function
+meanSquaredError :: Floating a => [a] -> [a] -> a
+meanSquaredError expected actual =
+    sum . map (** 2) $ zipWith (-) expected actual
+
+meanSquareErrorForSet :: Floating a => [[a]] -> [[a]] -> a
+meanSquareErrorForSet expected actual =
+    (sum $ zipWith meanSquaredError expected actual) / (2 * len)
+    where
+    len = fromIntegral $ min (length expected) (length actual)
