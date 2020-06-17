@@ -31,17 +31,19 @@ type Validator = Card -> MaybeT IO ValidChoice
 
 class PlayerUI ui where
     name :: ui -> String
-    selectCard :: ui -> Enemy -> Legio -> Validator -> IO ValidChoice
+    legio :: ui -> Legio
+    update :: ui -> Legio -> ui
+    selectCard :: ui -> Enemy -> Validator -> IO ValidChoice
 
     train :: ui -> Card -> Enemy -> ui
     train ui _ _ = ui
 
 
-getCard :: PlayerUI ui => ui -> Enemy -> Legio -> IO (Legio, Card)
-getCard ui enemy legio = do
-    ValidChoice c <- selectCard ui enemy legio validate
+getCard :: PlayerUI ui => ui -> Enemy -> IO (Legio, Card)
+getCard ui enemy = do
+    ValidChoice c <- selectCard ui enemy validate
     return c
     where
     validate card = do
         rand <- lift getStdGen
-        evalRandT (fmap ValidChoice $ Legio.playAndDraw legio card) rand
+        evalRandT (fmap ValidChoice $ Legio.playAndDraw (legio ui) card) rand

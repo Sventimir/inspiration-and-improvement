@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 module Main where
 
 import AI.Neuron (Network(..), readNetwork)
@@ -5,6 +6,7 @@ import AI.Neuron.Perceptron (SigmoidPerceptron)
 import AI.SimpleNetwork (SimpleNetwork)
 
 import Control.Monad.Random (RandT, evalRandT)
+import Control.Monad.State (StateT)
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Either (runEitherT)
 import Control.Monad.Trans.Maybe (MaybeT(..))
@@ -23,6 +25,9 @@ import UI.ConsolePlayer
 import UI.AiPlayer
 
 
+data Player where
+    Player :: PlayerUI p => p -> Player
+
 main :: IO ()
 main = do
     putStrLn "Welcome to LEGIO v. 0.2"
@@ -33,7 +38,9 @@ main = do
         l1 <- mkLegio (read count) (read deck1)
         l2 <- mkLegio (read count) (read deck2)
         return (l1, l2)
-    gameLoop neural legio1 legio2
+    let player1 = Player $ ConsolePlayer "Player" legio1
+    let player2 = Player $ AiPlayer "Enenmy" legio2 neural
+    gameLoop player1 player2
 
 
 mkLegio :: Int -> (Int, Int, Int) -> RandT StdGen IO Legio
@@ -52,15 +59,15 @@ loadNeuralNetwork filename = do
             putStrLn "Could not load AI!"
             error e
 
-gameLoop :: Network n => n Double -> Legio -> Legio -> IO ()
-gameLoop neural legio1 legio2 = do
-    let player1 = ConsolePlayer "Player"
-    let player2 = AiPlayer "Enenmy" neural
-    displayStatus player1 legio1
-    displayStatus player2 legio2
+gameLoop :: Player -> Player -> IO ()
+gameLoop (Player player1) (Player player2) = do
+    displayStatus player1
+    displayStatus player2
     putStrLn ""
-    choice1 <- getCard player1 (enemyFromLegio legio2) legio1
-    choice2@(_, card) <- getCard player2 (enemyFromLegio legio1) legio2
+    let legio1 = legio player1
+    let legio2 = legio player2
+    choice1 <- getCard player1 (enemyFromLegio legio2)
+    choice2@(_, card) <- getCard player2 (enemyFromLegio legio1)
     let (legio1', legio2') = Legio.resolve choice1 choice2
     putStrLn ("Player 2 played: " ++ show card ++ ".\n")
     case (Legio.isRouted legio1', Legio.isRouted legio2') of
@@ -86,12 +93,13 @@ gameLoop neural legio1 legio2 = do
                 " routed."
             )
 
-        (False, False) -> gameLoop neural legio1' legio2'
+        (False, False) -> gameLoop (Player $ update player1 legio1') (Player $ update player2 legio2')
 
-displayStatus :: PlayerUI p => p -> Legio -> IO ()
-displayStatus player legio = do
+displayStatus :: PlayerUI p => p -> IO ()
+displayStatus player = do
+    let l = legio player
     putStrLn (
-            name player ++ " has got " ++ show (Legio.active legio) ++
-            " fighting cohorts and " ++ show (Legio.routed legio) ++
+            name player ++ " has got " ++ show (Legio.active l) ++
+            " fighting cohorts and " ++ show (Legio.routed l) ++
             " retrerating ones."
         )

@@ -6,12 +6,14 @@ import Control.Monad.Trans.Maybe (MaybeT(..))
 import Data.Legio (Legio(..))
 import UI.Player
 
-newtype DummyPlayer = DummyPlayer String
+data DummyPlayer = DummyPlayer String Legio
 
 
 instance PlayerUI DummyPlayer where
-    name (DummyPlayer n) = n
+    name (DummyPlayer n _) = n
+    legio (DummyPlayer _ l) = l
+    update (DummyPlayer n _) l = DummyPlayer n l
 
-    selectCard (DummyPlayer n) _ legio validate = do
+    selectCard (DummyPlayer n legio) _ validate = do
         Just result <- runMaybeT . validate . head $ hand legio
         return result

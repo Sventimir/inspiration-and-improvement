@@ -8,7 +8,7 @@ import AI.Neuron (Network, feed, outputs)
 import Control.Monad.State (evalStateT)
 import Control.Monad.Trans.Maybe (runMaybeT)
 
-import Data.Legio (Card(..))
+import Data.Legio (Card(..), Legio(..))
 import qualified Data.Legio as Legio
 import Data.List (foldl', maximumBy)
 import Data.Split (total, left, right)
@@ -17,13 +17,16 @@ import UI.Player
 
 
 data AiPlayer n a where
-    AiPlayer :: Network n => String -> n a -> AiPlayer n a
+    AiPlayer :: Network n => String -> Legio -> n a -> AiPlayer n a
 
 
 instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
-    name (AiPlayer n _) = n
+    name (AiPlayer n _ _) = n
+    legio (AiPlayer _ l _) = l
 
-    selectCard (AiPlayer name net) (Enemy eSplit eDiscarded eAll) legio validate =
+    update (AiPlayer name _ neural) legio = AiPlayer name legio neural
+
+    selectCard (AiPlayer name legio net) (Enemy eSplit eDiscarded eAll) validate =
         let enemyCohorts = fromIntegral $ total eSplit
             ownCohorts = fromIntegral . total $ Legio.cohorts legio
             (handA, handD, handR) = Legio.countCards $ Legio.hand legio
