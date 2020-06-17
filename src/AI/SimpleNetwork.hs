@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GADTs #-}
+{-# LANGUAGE OverloadedStrings, MultiParamTypeClasses, FlexibleInstances, ScopedTypeVariables, GADTs #-}
 module AI.SimpleNetwork (
     SimpleNetwork(..)
 ) where
@@ -6,6 +6,8 @@ module AI.SimpleNetwork (
 import AI.Neuron
 
 import Control.Applicative ((<|>))
+import Control.Monad.State (StateT)
+import Control.Monad.State.Compose (Wrapper(..), chainState, forEachState, wrapped)
 
 import Data.Attoparsec.Text (Parser, many', skip, skipSpace, endOfLine)
 import qualified Data.Text as Text
@@ -16,12 +18,15 @@ import System.IO (Handle)
 data SimpleNetwork n a where
     SimpleNetwork :: Neuron n => [[n a]] -> SimpleNetwork n a
 
+instance Neuron n => Wrapper (SimpleNetwork n a) [[n a]] where
+    wrap = SimpleNetwork
+    unwrap (SimpleNetwork ls) = ls
+
 instance Neuron n => Network (SimpleNetwork n) where
-    eval (SimpleNetwork layers) inputs = feedForward layers inputs
+    feed inputs = wrapped $ chainState feedForward inputs
         where
-        feedForward [] inputs = inputs
-        feedForward (l : ls) inputs =
-            feedForward ls $ map (flip decide inputs) l
+        feedForward :: (Floating a, Monad m) => [a] -> StateT [n a] m [a]
+        feedForward inputs = do forEachState (fire inputs)
 
     networkParser weight = do
         skip (== '^') <|> return ()
@@ -29,6 +34,10 @@ instance Neuron n => Network (SimpleNetwork n) where
         return $ SimpleNetwork layers
 
     saveNetwork file (SimpleNetwork layers) = writeNetwork file layers
+
+    outputs (SimpleNetwork []) = []
+    outputs (SimpleNetwork layers) =
+        map value $ last layers
 
 
 writeNetwork :: (Neuron n, Show a) => Handle -> [[n a]] -> IO ()

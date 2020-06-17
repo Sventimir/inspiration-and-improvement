@@ -52,6 +52,7 @@ executables:
     source-dirs:        exercise
     dependencies:
     - legio
+    - mtl
 
 tests:
   legio-test:

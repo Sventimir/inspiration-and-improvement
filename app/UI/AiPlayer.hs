@@ -3,8 +3,9 @@ module UI.AiPlayer (
     AiPlayer(..)
 ) where
 
-import AI.Neuron (Network, eval)
+import AI.Neuron (Network, feed, outputs)
 
+import Control.Monad.State (evalStateT)
 import Control.Monad.Trans.Maybe (runMaybeT)
 
 import Data.Legio (Card(..))
@@ -49,10 +50,10 @@ instance (Network n, Floating a, Ord a, Show a) => PlayerUI (AiPlayer n a) where
                     fromIntegral (eAllD - eDisD) / fromIntegral eTotalInPlay,
                     fromIntegral (eAllR - eDisR) / fromIntegral eTotalInPlay
                 ]
-            (card, _) = maximumBy cmpWeights .
-                zipWith3 flattenUnavailable [Attack, Defend, Rally] [handA, handD, handR] $
-                eval net inputs
         in do
+        results <- evalStateT (feed inputs) net
+        let (card, _) = maximumBy cmpWeights $
+                zipWith3 flattenUnavailable [Attack, Defend, Rally] [handA, handD, handR] results
         r <- runMaybeT $ validate card
         case r of
             Just decision -> return decision

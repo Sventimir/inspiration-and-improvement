@@ -1,6 +1,7 @@
 import AI.Neuron
 import AI.Neuron.Perceptron
 import AI.SimpleNetwork
+import Control.Monad.State (evalStateT)
 
 main :: IO ()
 main = do
@@ -10,8 +11,8 @@ main = do
 digitToBin :: IO ()
 digitToBin = mapM_ displayResult [0..9]
     where
-    displayResult d =
-        let output = eval digitNet $ vectorizeDigit d in
+    displayResult d = do
+        output <- evalStateT (feed $ vectorizeDigit d) digitNet
         putStrLn ("Result for digit " ++ show d ++ " is: " ++ show output)
     vectorizeDigit 0 = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     vectorizeDigit 1 = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]

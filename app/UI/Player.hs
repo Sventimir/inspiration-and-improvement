@@ -33,6 +33,9 @@ class PlayerUI ui where
     name :: ui -> String
     selectCard :: ui -> Enemy -> Legio -> Validator -> IO ValidChoice
 
+    train :: ui -> Card -> Enemy -> ui
+    train ui _ _ = ui
+
 
 getCard :: PlayerUI ui => ui -> Enemy -> Legio -> IO (Legio, Card)
 getCard ui enemy legio = do

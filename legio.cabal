@@ -25,6 +25,7 @@ library
       AI.Neuron.Perceptron
       AI.SimpleNetwork
       Control.Monad.Extra
+      Control.Monad.State.Compose
       Data.Legio
       Data.Split
   other-modules:
@@ -51,6 +52,7 @@ executable exercise
   build-depends:
       base >=4.7 && <5
     , legio
+    , mtl
   default-language: Haskell2010
 
 executable legio-exe

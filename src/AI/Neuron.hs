@@ -5,6 +5,7 @@ module AI.Neuron (
 ) where
 
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.State (StateT)
 import Control.Monad.Trans.Either (EitherT, hoistEither)
 
 import Data.Attoparsec.Text (Parser, parseWith, eitherResult)
@@ -17,10 +18,13 @@ class Neuron n where
     make :: (Floating a, Ord a) => a -> [a] -> n a
     weights :: n a -> [a]
     bias :: n a -> a
+    value :: n a -> a  -- the last value of activation
     decide :: Floating a => n a -> [a] -> a
+    fire :: (Floating a, Monad m) => [a] -> StateT (n a) m a
 
 class Network n where
-    eval :: (Floating a, Ord a) => n a -> [a] -> [a]
+    feed :: (Floating a, Ord a, Monad m) => [a] -> StateT (n a) m [a]
+    outputs :: n a -> [a]
     networkParser :: (Floating a, Ord a) => Parser a -> Parser (n a)
     saveNetwork :: Show a => Handle -> n a -> IO ()
 
