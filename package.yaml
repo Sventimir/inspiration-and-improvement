@@ -30,9 +30,9 @@ library:
     - transformers-either
 
 executables:
-  legio-exe:
+  legio:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:         legio
     ghc-options:
     - -threaded
     - -rtsopts
