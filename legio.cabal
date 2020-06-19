@@ -26,6 +26,7 @@ library
       AI.SimpleNetwork
       Control.Monad.Extra
       Control.Monad.State.Compose
+      Data.CardSet
       Data.Split
   other-modules:
       Paths_legio
@@ -57,6 +58,7 @@ executable exercise
 executable legio
   main-is: Main.hs
   other-modules:
+      Data.Card
       Paths_legio
   hs-source-dirs:
       legio
