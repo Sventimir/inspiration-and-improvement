@@ -30,6 +30,7 @@ data Enemy = Enemy (Split Int) CardCounts CardCounts
 
 class (Replaceable p (CardSet Card), Replaceable p (Split Int)) => PlayerUI p where
     name :: p -> String
+    damage :: p -> Int
     legio :: p -> Split Int
     cardSet :: p -> CardSet Card
     selectCard :: MonadIO m => Enemy -> p -> m (ValidChoice Card)
@@ -48,6 +49,7 @@ instance Replaceable Player (CardSet Card) where
 
 instance PlayerUI Player where
     name (Player p) = name p
+    damage (Player p) = damage p
     legio (Player p) = legio p
     cardSet (Player p) = cardSet p
     selectCard enemy (Player p) = selectCard enemy p

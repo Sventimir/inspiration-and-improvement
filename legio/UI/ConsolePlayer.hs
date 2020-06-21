@@ -13,22 +13,23 @@ import Data.Split (Split, left, right)
 import UI.Player
 
 
-data ConsolePlayer = ConsolePlayer String (Split Int) (CardSet Card)
+data ConsolePlayer = ConsolePlayer String Int (Split Int) (CardSet Card)
 
 instance Replaceable ConsolePlayer (CardSet Card) where
-    extract (ConsolePlayer _ _ cs) = cs
-    replace cs (ConsolePlayer n s _) = ConsolePlayer n s cs
+    extract (ConsolePlayer _ _ _ cs) = cs
+    replace cs (ConsolePlayer n a s _) = ConsolePlayer n a s cs
 
 instance Replaceable ConsolePlayer (Split Int) where
-    extract (ConsolePlayer _ l _) = l
-    replace l (ConsolePlayer n _ cs) = ConsolePlayer n l cs
+    extract (ConsolePlayer _ _ l _) = l
+    replace l (ConsolePlayer n a _ cs) = ConsolePlayer n a l cs
 
 instance PlayerUI ConsolePlayer where
-    name (ConsolePlayer n _ _) = n
-    legio (ConsolePlayer _ l _) = l
-    cardSet (ConsolePlayer _ _ cs) = cs
+    name (ConsolePlayer n _ _ _) = n
+    damage (ConsolePlayer _ d _ _) = d
+    legio (ConsolePlayer _ _ l _) = l
+    cardSet (ConsolePlayer _ _ _ cs) = cs
 
-    selectCard (Enemy enemy _ _) (ConsolePlayer n l cset) = liftIO $ do
+    selectCard (Enemy enemy _ _) (ConsolePlayer n _ l cset) = liftIO $ do
         putStrLn (
                 n ++ ", you've got " ++ (show $ left l) ++ " fighting cohorts and " ++
                 (show $ right l) ++ " retreating cohorts."

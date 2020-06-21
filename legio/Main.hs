@@ -5,7 +5,7 @@ import Control.Monad.Random (RandT, evalRandT)
 import Control.Monad.State (StateT, evalStateT, get)
 import Control.Monad.State.Compose (composeState)
 
-import Data.Card (Card(..), count)
+import Data.Card (Card(..), CardCounts, count)
 import Data.CardSet (CardSet, cardSetFromList, deck, discard, hand)
 import Data.Split (Split, split, left)
 
@@ -22,14 +22,12 @@ handSize = 5
 main :: IO ()
 main = do
     putStrLn "Welcome to LEGIO v. 0.2"
-    [cohorts, playerCards, enemyCards] <- getArgs
+    [playerCards, enemyCards] <- getArgs
     rand <- getStdGen
-    (playerDeck, enemyDeck) <- flip evalRandT rand $ do
-        pl <- mkDeck $ read playerCards
-        en <- mkDeck $ read enemyCards
+    (player, enemy) <- flip evalRandT rand $ do
+        pl <- mkPlayer (ConsolePlayer "Player") $ read playerCards
+        en <- mkPlayer (DummyPlayer "Enemy") $ read enemyCards
         return (pl, en)
-    let player = Player $ ConsolePlayer "Player" (mkLegio $ read cohorts) playerDeck
-        enemy = Player $ DummyPlayer "Enemy" (mkLegio $ read cohorts) enemyDeck
     evalStateT gameLoop (player, enemy)
 
 gameLoop :: StateT (Player, Player) IO ()
@@ -51,16 +49,14 @@ gameLoop = do
         (c, 0) -> liftIO $ putStrLn ("Player wins with " ++ show c ++ " fighting cohorts!")
         _ -> gameLoop
 
-
-mkLegio :: Int -> Split Int
-mkLegio cs = split cs 0
-
-mkDeck :: (Int, Int, Int) -> RandT StdGen IO (CardSet Card)
-mkDeck (a, d, r) = cardSetFromList handSize (
-        replicate a Attack ++
-        replicate d Defend ++
-        replicate r Rally
-    )
+mkPlayer :: PlayerUI p => (Int -> Split Int -> CardSet Card -> p) -> CardCounts -> RandT StdGen IO Player
+mkPlayer constr (a, d, r) = do
+    cardset <- cardSetFromList d (
+            replicate a Attack ++
+            replicate d Defend ++
+            replicate r Rally
+        )
+    return . Player $ constr a (split r d) cardset
 
 enemyFromPlayer :: Player -> Enemy
 enemyFromPlayer (Player p) =
