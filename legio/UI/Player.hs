@@ -4,8 +4,7 @@ module UI.Player (
     Player(..),
     PlayerUI(..),
     ValidChoice, -- opaque, because type system cannot guarantee validity
-    playCard,
-    resolve
+    playCard
 ) where
 
 import Control.Monad (join, mzero)
@@ -26,7 +25,7 @@ import Data.Tuple.Extra (both)
 import System.Random (StdGen, getStdGen)
 
 
-data Enemy = Enemy (Split Int) CardCounts CardCounts
+data Enemy = Enemy Int (Split Int) CardCounts CardCounts
 
 class (Replaceable p (CardSet Card), Replaceable p (Split Int)) => PlayerUI p where
     name :: p -> String
@@ -64,20 +63,3 @@ playCard enemy = do
     rand <- liftIO getStdGen
     partialState $ evalRandT (draw 1 :: RandT StdGen (StateT (CardSet Card) m) ()) rand
     return card
-
-
-resolver :: Card -> Card -> (Split Int -> Split Int, Split Int -> Split Int)
-resolver Attack Attack = (removeLeft 1 . moveRight 2, removeLeft 1 . moveRight 2)
-resolver Attack Defend = (moveRight 2, moveRight 1)
-resolver Attack Rally  = (moveRight 2, removeLeft 4)
-resolver Defend Defend = (moveRight 1, moveRight 1)
-resolver Defend Rally  = (moveRight 1, moveLeft 2)
-resolver Rally  Rally  = (moveLeft 2, moveLeft 2)
-resolver l r = swap $ resolver r l
-
-resolve :: forall m . Monad m => Card -> Card -> StateT (Player, Player) m ()
-resolve leftCard rightCard =
-    uncurry composeState . both stateify $ resolver leftCard rightCard
-    where
-    stateify :: (Split Int -> Split Int) -> StateT Player m ()
-    stateify = partialState . modify

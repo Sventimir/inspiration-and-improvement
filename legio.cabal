@@ -58,6 +58,7 @@ executable exercise
 executable legio
   main-is: Main.hs
   other-modules:
+      Config.Resolver
       Data.Card
       UI.ConsolePlayer
       UI.DummyPlayer
@@ -70,6 +71,7 @@ executable legio
       MonadRandom
     , attoparsec
     , base >=4.7 && <5
+    , containers
     , extra
     , legio
     , mtl

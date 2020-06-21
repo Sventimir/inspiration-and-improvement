@@ -29,7 +29,7 @@ instance PlayerUI ConsolePlayer where
     legio (ConsolePlayer _ _ l _) = l
     cardSet (ConsolePlayer _ _ _ cs) = cs
 
-    selectCard (Enemy enemy _ _) (ConsolePlayer n _ l cset) = liftIO $ do
+    selectCard (Enemy _ enemy _ _) (ConsolePlayer n _ l cset) = liftIO $ do
         putStrLn (
                 n ++ ", you've got " ++ (show $ left l) ++ " fighting cohorts and " ++
                 (show $ right l) ++ " retreating cohorts."
