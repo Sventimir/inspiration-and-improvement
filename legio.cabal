@@ -59,6 +59,9 @@ executable legio
   main-is: Main.hs
   other-modules:
       Data.Card
+      UI.ConsolePlayer
+      UI.DummyPlayer
+      UI.Player
       Paths_legio
   hs-source-dirs:
       legio
@@ -67,6 +70,7 @@ executable legio
       MonadRandom
     , attoparsec
     , base >=4.7 && <5
+    , extra
     , legio
     , mtl
     , random

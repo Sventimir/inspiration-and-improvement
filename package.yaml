@@ -39,6 +39,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - attoparsec
+    - extra
     - legio
     - MonadRandom
     - mtl

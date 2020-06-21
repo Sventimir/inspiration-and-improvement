@@ -1,17 +1,22 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 module Control.Monad.State.Compose (
-    Wrapper(..),
+    Replaceable(..),
     Splitable(..),
+    Wrapper(..),
     chainState,
-    compose,
+    composeState,
     forEachState,
+    partialState,
+    readOnly,
     wrapped
 ) where
 
 import Control.Monad (mapM)
-import Control.Monad.State (StateT(..), runStateT)
+import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.State (StateT(..), runStateT, get, gets)
 
 import Data.List (foldl')
+
 
 class Wrapper w a where
     wrap :: a -> w
@@ -21,18 +26,30 @@ class Splitable s a b where
     split :: s -> (a, b)
     fuse :: a -> b -> s
 
+class Replaceable s p where
+    extract :: s -> p
+    replace :: p -> s -> s
+
+instance Splitable (a, b) a b where
+    split = id
+    fuse a b = (a, b)
+
+instance Splitable a a () where
+    split a = (a, ())
+    fuse a () = a
+
 wrapped :: (Wrapper w s, Monad m) => StateT s m a -> StateT w m a
 wrapped action = StateT $ \w -> do
     (b, s) <- runStateT action $ unwrap w
     return (b, wrap s)
 
-compose :: (Monad m, Splitable c a b, Splitable t s r) =>
-    StateT s m b -> StateT r m a -> StateT t m c
-compose left right = StateT $ \t -> do
+composeState :: (Monad m, Splitable c a b, Splitable t s r) =>
+    StateT s m a -> StateT r m b -> StateT t m c
+composeState left right = StateT $ \t -> do
     let (s, r) = split t
-    (b, s') <- runStateT left s
-    (a, r') <- runStateT right r
-    return (fuse a b, fuse s r)
+    (a, s') <- runStateT left s
+    (b, r') <- runStateT right r
+    return (fuse a b, fuse s' r')
 
 
 forEachState :: Monad m => StateT s m a -> StateT [s] m [a]
@@ -55,3 +72,13 @@ chainState action init = StateT $ foldInputs init
         (a, s') <- runStateT (action acc) s
         (a', ss') <- foldInputs a ss
         return (a', s' : ss')
+
+partialState :: (Monad m, Replaceable s p) => StateT p m a -> StateT s m a
+partialState action = StateT $ \s -> do
+    (a, p) <- runStateT action $ extract s
+    return $ (a, replace p s)
+
+readOnly :: Monad m => ReaderT s m a -> StateT s m a
+readOnly r = StateT $ \s -> do
+    a <- runReaderT r s
+    return (a, s)

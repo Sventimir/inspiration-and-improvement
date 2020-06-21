@@ -1,9 +1,22 @@
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
 module Data.Card where
 
-import Data.List (foldl')
+import Data.CardSet (Selector(..))
+import Data.List (find, foldl')
 
 
 data Card = Attack | Defend | Rally
+    deriving (Show, Eq)
+
+instance Selector String Card where
+    select "a" = find (== Attack)
+    select "A" = find (== Attack)
+    select "d" = find (== Defend)
+    select "D" = find (== Defend)
+    select "r" = find (== Rally)
+    select "R" = find (== Rally)
+    select _ = const Nothing
+
 type CardCounts = (Int, Int, Int)
 
 count :: [Card] -> CardCounts
