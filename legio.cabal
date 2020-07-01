@@ -28,6 +28,10 @@ library
       Control.Monad.State.Compose
       Data.CardSet
       Data.Split
+      Language.Resolvers.Compiler
+      Language.Resolvers.Expr
+      Language.Resolvers.Types
+      Language.Resolvers.Untyped
   other-modules:
       Paths_legio
   hs-source-dirs:
