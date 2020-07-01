@@ -30,7 +30,6 @@ main = do
     resolver <- case resolverOrError of
         Right r -> return r
         Left e -> error e
-    print resolver
     rand <- getStdGen
     (player, enemy) <- flip evalRandT rand $ do
         pl <- mkPlayer (ConsolePlayer "Player") $ read playerCards
