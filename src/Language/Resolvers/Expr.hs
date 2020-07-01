@@ -20,8 +20,8 @@ data Expr env a where
 eval :: MonadState env m => Expr env a -> m a
 eval (Const a) = return a
 eval (Var f) = gets f
-eval (App f a) = eval f <*> eval a
 eval (Assign f a) = eval a >>= modify . f
+eval (App f a) = eval f <*> eval a
 eval (Seq a b) = eval a >> eval b
 eval (IfThenElse cond ifSo ifNot) = do
     c <- eval cond

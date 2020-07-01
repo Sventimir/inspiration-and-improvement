@@ -1,7 +1,8 @@
 {-# LANGUAGE GADTs, OverloadedStrings #-}
 module Language.Resolvers.Compiler (
-    typeCheck,
-    infer
+    compile,
+    infer,
+    typeCheck
 ) where
 
 import Data.Text (Text)
@@ -15,10 +16,14 @@ import Language.Resolvers.Untyped (UExpr(..))
 data Term env where
     Term :: EType a -> Expr env a -> Term env
 
-typeCheck :: UExpr env -> Either Text (Expr env ())
-typeCheck uexpr = do
+
+compile :: UExpr env -> Either Text (Expr env ())
+compile = typeCheck EUnit
+
+typeCheck :: EType a -> UExpr env -> Either Text (Expr env a)
+typeCheck expected uexpr = do
     Term t e <- infer uexpr
-    Refl <- assertType EUnit t
+    Refl <- assertType expected t
     return e
 
 infer :: UExpr env -> Either Text (Term env)
@@ -40,7 +45,9 @@ infer (USeq ua ub) = do
     Term ta a <- infer ua
     Refl <- assertType EUnit ta
     Term tb b <- infer ub
-    return $ Term tb (Seq a b)
+    case a of
+        Const () -> return $ Term tb b
+        _ -> return $ Term tb (Seq a b)
 infer (UIf cond ifSo ifNot) = do
     Term tbool c <- infer cond
     Refl <- assertType EBool tbool
@@ -53,4 +60,6 @@ infer (UWhile cond ua) = do
     Refl <- assertType EBool tbool
     Term tunit a <- infer ua
     Refl <- assertType EUnit tunit
-    return $ Term EUnit (While c a)
+    case a of
+        Const () -> return $ Term EUnit (Const ())
+        _ -> return $ Term EUnit (While c a)
