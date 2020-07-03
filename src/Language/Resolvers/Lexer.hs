@@ -3,11 +3,13 @@ module Language.Resolvers.Lexer (
     lexer
 ) where
 
+import Control.Applicative ((<|>))
 import Control.Monad.Trans (lift)
 import Control.Monad.Reader (ReaderT, runReaderT, asks)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 
-import Data.Attoparsec.Text (Parser, choice, inClass, satisfy, skip, skipSpace, takeWhile)
+import Data.Attoparsec.Text (Parser, choice, decimal, inClass, satisfy, skip,
+        skipSpace, takeWhile)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -28,37 +30,35 @@ instance Monoid (UExpr env) where
 
 
 lexer :: Map Text (UExpr env) -> Parser (UExpr env)
-lexer = runReaderT $ do
-    lift $ do
-        skipSpace
-        skip (== '{')
-        skipSpace
-    e <- execWriterT parserLoop
-    lift $ do
-        skipSpace
-        skip (== '}')
-        skipSpace
-    return e
+lexer primitives = do
+    skipSpace
+    skip (== '{')
+    skipSpace
+    runReaderT (execWriterT parserLoop) primitives
 
 parserLoop :: WriterT (UExpr env) (ReaderT (Map Text (UExpr env)) Parser) ()
 parserLoop = do
-    e <- choice [ lift (expr Nothing) ]
-    tell e
-    parserLoop
+    e <- lift $ choice [ expr Nothing ]
+    tell (UAssign e)
+    (lift . lift $ parseEnd) <|> parserLoop
 
+parseEnd :: Parser ()
+parseEnd = skipSpace >> skip (== '}') >> skipSpace
 
 expr :: Maybe (UExpr env) -> ReaderT (Map Text (UExpr env)) Parser (UExpr env)
 expr e = do
-    name <- lift parseName
-    v <- findName name
+    v <- choice [ name, lift intLit ]
     lift skipSpace
     choice [
             lift . endOfExpr $ maybeApp e v,
             expr $ Just (maybeApp e v)
         ]
     where
+    name = lift parseName >>= findName
+    intLit = fmap (UConst EInt) decimal
     endOfExpr v = do
         skip (== ';')
+        skipSpace
         return v
 
 maybeApp :: Maybe (UExpr env) -> UExpr env -> UExpr env

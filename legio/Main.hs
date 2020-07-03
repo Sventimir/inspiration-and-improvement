@@ -11,6 +11,7 @@ import Control.Monad.Trans.Either (runEitherT)
 import Data.Card (Card(..), CardCounts, count)
 import Data.CardSet (CardSet, cardSetFromList, deck, discard, hand)
 import Data.Split (Split, split, left)
+import qualified Data.Text as Text
 
 import System.Environment (getArgs)
 import System.Random (StdGen, getStdGen)
@@ -29,7 +30,7 @@ main = do
     resolverOrError <- runEitherT $ loadResolver "data/resolver.conf"
     resolver <- case resolverOrError of
         Right r -> return r
-        Left e -> error e
+        Left e -> error $ Text.unpack e
     rand <- getStdGen
     (player, enemy) <- flip evalRandT rand $ do
         pl <- mkPlayer (ConsolePlayer "Player") $ read playerCards

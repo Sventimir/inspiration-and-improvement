@@ -5,7 +5,7 @@ module Language.Resolvers.Types (
     typeRepr
 ) where
 
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 import Data.Type.Equality (TestEquality(..), (:~:)(..))
 
 
@@ -43,6 +43,9 @@ typeRepr EUnit = "Unit"
 typeRepr EAlter = "Alternator"
 typeRepr (EList t) = "List of " <> typeRepr t
 typeRepr (EFun a r) = typeRepr a <> " -> " <> typeRepr r
+
+instance Show (EType e a) where
+    show = unpack . typeRepr
 
 assertType :: EType env a -> EType env b -> Either Text (a :~: b)
 assertType expected actual = case testEquality expected actual of

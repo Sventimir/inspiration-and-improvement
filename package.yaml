@@ -23,6 +23,7 @@ library:
   dependencies:
     - attoparsec
     - containers
+    - extra
     - MonadRandom
     - mtl
     - random-shuffle
@@ -41,6 +42,7 @@ executables:
     dependencies:
     - attoparsec
     - containers
+    - either
     - extra
     - legio
     - MonadRandom
