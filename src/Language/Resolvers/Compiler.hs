@@ -14,13 +14,13 @@ import Language.Resolvers.Unchecked (UExpr(..))
 
 
 data Term env where
-    Term :: EType a -> Expr env a -> Term env
+    Term :: EType env a -> Expr env a -> Term env
 
 
 compile :: UExpr env -> Either Text (Expr env ())
 compile = typeCheck EUnit
 
-typeCheck :: EType a -> UExpr env -> Either Text (Expr env a)
+typeCheck :: EType env a -> UExpr env -> Either Text (Expr env a)
 typeCheck expected uexpr = do
     Term t e <- infer uexpr
     Refl <- assertType expected t
@@ -29,10 +29,10 @@ typeCheck expected uexpr = do
 infer :: UExpr env -> Either Text (Term env)
 infer (UConst t a) = return $ Term t (Const a)
 infer (UVar t getter) = return $ Term t (Var getter)
-infer (UAssign t asgn v) = do
-    Term tv a <- infer v
-    Refl <- assertType t tv
-    return $ Term EUnit (Assign asgn a)
+infer (UAssign uf) = do
+    Term t f <- infer uf
+    Refl <- assertType EAlter t
+    return $ Term EUnit (Assign f)
 infer (UApp uf ua) = do
     Term tf f <- infer uf
     case tf of

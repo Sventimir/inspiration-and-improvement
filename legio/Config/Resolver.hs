@@ -101,9 +101,9 @@ exprParser :: Parser (Expr Resolution ())
 exprParser = do
     cmd <- choice [
             symbol "pass" >> return (Const ()),
-            symbol "kill" >> fmap (Assign asgnKill) parseArg,
-            symbol "rout" >> fmap (Assign asgnRout) parseArg,
-            symbol "rally" >> fmap (Assign asgnRestore) parseArg
+            symbol "kill" >> fmap (Assign . App (Const asgnKill)) parseArg,
+            symbol "rout" >> fmap (Assign . App (Const asgnRout)) parseArg,
+            symbol "rally" >> fmap (Assign . App (Const asgnRestore)) parseArg
         ]
     fmap (Seq cmd) nextExpr <|> return cmd
     where

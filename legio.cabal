@@ -30,6 +30,7 @@ library
       Data.Split
       Language.Resolvers.Compiler
       Language.Resolvers.Expr
+      Language.Resolvers.Lexer
       Language.Resolvers.Types
       Language.Resolvers.Unchecked
   other-modules:
@@ -40,6 +41,7 @@ library
       MonadRandom
     , attoparsec
     , base >=4.7 && <5
+    , containers
     , mtl
     , random-shuffle
     , text
