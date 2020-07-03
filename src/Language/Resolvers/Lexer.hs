@@ -8,8 +8,8 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Reader (ReaderT, runReaderT, asks)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 
-import Data.Attoparsec.Text (Parser, choice, decimal, inClass, satisfy, skip,
-        skipSpace, takeWhile)
+import Data.Attoparsec.Text (Parser, choice, decimal, double, inClass, satisfy,
+        skip, skipSpace, string, takeWhile)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -30,11 +30,11 @@ instance Monoid (UExpr env) where
 
 
 lexer :: Map Text (UExpr env) -> Parser (UExpr env)
-lexer primitives = do
+lexer prims = do
     skipSpace
     skip (== '{')
     skipSpace
-    runReaderT (execWriterT parserLoop) primitives
+    runReaderT (execWriterT parserLoop) $ Map.union primitives prims
 
 parserLoop :: WriterT (UExpr env) (ReaderT (Map Text (UExpr env)) Parser) ()
 parserLoop = do
@@ -47,7 +47,7 @@ parseEnd = skipSpace >> skip (== '}') >> skipSpace
 
 expr :: Maybe (UExpr env) -> ReaderT (Map Text (UExpr env)) Parser (UExpr env)
 expr e = do
-    v <- choice [ name, lift intLit ]
+    v <- choice [ name, lift literal ]
     lift skipSpace
     choice [
             lift . endOfExpr $ maybeApp e v,
@@ -55,11 +55,17 @@ expr e = do
         ]
     where
     name = lift parseName >>= findName
-    intLit = fmap (UConst EInt) decimal
     endOfExpr v = do
         skip (== ';')
         skipSpace
         return v
+
+literal :: Parser (UExpr env)
+literal = choice [
+        (string "()" >> return (UConst EUnit ())),
+        fmap (UConst EInt) decimal,
+        fmap (UConst EFloat) double
+    ]
 
 maybeApp :: Maybe (UExpr env) -> UExpr env -> UExpr env
 maybeApp Nothing arg = arg
@@ -77,3 +83,10 @@ findName name = do
     case maybeVal of
         Just v -> return v
         Nothing -> lift $ fail ("Undefined value: '" <> Text.unpack name <> "'.")
+
+primitives :: Map Text (UExpr env)
+primitives = Map.fromList [
+        ("unit", UConst EUnit ()),
+        ("true", UConst EBool True),
+        ("false", UConst EBool False)
+    ]
