@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs #-}
-module Language.Resolvers.Untyped (
+module Language.Resolvers.Unchecked (
     UExpr(..)
 ) where
 

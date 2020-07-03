@@ -31,7 +31,7 @@ library
       Language.Resolvers.Compiler
       Language.Resolvers.Expr
       Language.Resolvers.Types
-      Language.Resolvers.Untyped
+      Language.Resolvers.Unchecked
   other-modules:
       Paths_legio
   hs-source-dirs:

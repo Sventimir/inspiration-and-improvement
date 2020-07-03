@@ -10,7 +10,7 @@ import Data.Type.Equality ((:~:)(..))
 
 import Language.Resolvers.Expr (Expr(..))
 import Language.Resolvers.Types (EType(..), assertType, typeRepr)
-import Language.Resolvers.Untyped (UExpr(..))
+import Language.Resolvers.Unchecked (UExpr(..))
 
 
 data Term env where
