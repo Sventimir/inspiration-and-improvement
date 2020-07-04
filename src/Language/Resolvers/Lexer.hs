@@ -10,6 +10,7 @@ import Control.Monad.Writer (WriterT, execWriterT, tell)
 
 import Data.Attoparsec.Text (Parser, choice, decimal, double, inClass, satisfy,
         skip, skipSpace, string, takeWhile)
+import Data.Char (isSpace)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -19,6 +20,7 @@ import Language.Resolvers.Types (EType(..))
 import Language.Resolvers.Unchecked (UExpr(..))
 
 import Prelude hiding (takeWhile)
+import Debug.Trace
 
 
 instance Semigroup (UExpr env) where
@@ -47,18 +49,30 @@ parseEnd = skipSpace >> skip (== '}') >> skipSpace
 
 expr :: Maybe (UExpr env) -> ReaderT (Map Text (UExpr env)) Parser (UExpr env)
 expr e = do
-    v <- choice [ name, lift literal ]
+    trace (show e) $ return ()
+    v <- choice [ name, subexpr, lift literal ]
     lift skipSpace
     choice [
             lift . endOfExpr $ maybeApp e v,
             expr $ Just (maybeApp e v)
         ]
     where
-    name = lift parseName >>= findName
+    name = lift (parseName <|> parseSymbol) >>= findName
     endOfExpr v = do
-        skip (== ';')
+        skip (inClass ";)")
         skipSpace
         return v
+
+subexpr :: ReaderT (Map Text (UExpr env)) Parser (UExpr env)
+subexpr = do
+    lift $ do
+        skip (== '(')
+        skipSpace
+    e <- expr Nothing
+    lift $ do
+        skipSpace
+        trace "Reaced )" $ return ()
+    return e
 
 literal :: Parser (UExpr env)
 literal = choice [
@@ -70,6 +84,9 @@ literal = choice [
 maybeApp :: Maybe (UExpr env) -> UExpr env -> UExpr env
 maybeApp Nothing arg = arg
 maybeApp (Just f) arg = UApp f arg
+
+parseSymbol :: Parser Text
+parseSymbol = takeWhile (\c -> not (inClass "a-zA-Z0-9_(){}[]" c || isSpace c))
 
 parseName :: Parser Text
 parseName = do
@@ -86,7 +103,10 @@ findName name = do
 
 primitives :: Map Text (UExpr env)
 primitives = Map.fromList [
-        ("unit", UConst EUnit ()),
-        ("true", UConst EBool True),
-        ("false", UConst EBool False)
+        ("unit",    UConst EUnit ()),
+        ("true",    UConst EBool True),
+        ("false",   UConst EBool False),
+        ("+",       UConst (EFun EInt (EFun EInt EInt)) (+)),
+        ("-",       UConst (EFun EInt (EFun EInt EInt)) (-)),
+        ("*",       UConst (EFun EInt (EFun EInt EInt)) (*))
     ]
