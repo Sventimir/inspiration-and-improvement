@@ -17,28 +17,28 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 
 import Language.Resolvers.Types (EType(..))
-import Language.Resolvers.Unchecked (UExpr(..))
+import Language.Resolvers.Unchecked (UExpr(..), UExprConstr(..), mkUExpr, precedence)
 
 import Prelude hiding (takeWhile)
 import Debug.Trace
 
 
 instance Semigroup (UExpr env) where
-    (UConst EUnit ()) <> e = e
+    (UConst "()" EUnit ()) <> e = e
     l <> r = USeq l r
 
 instance Monoid (UExpr env) where
-    mempty = UConst EUnit ()
+    mempty = UConst "()" EUnit ()
 
 
-lexer :: Map Text (UExpr env) -> Parser (UExpr env)
+lexer :: Map Text (UExprConstr env) -> Parser (UExpr env)
 lexer prims = do
     skipSpace
     skip (== '{')
     skipSpace
     runReaderT (execWriterT parserLoop) $ Map.union primitives prims
 
-parserLoop :: WriterT (UExpr env) (ReaderT (Map Text (UExpr env)) Parser) ()
+parserLoop :: WriterT (UExpr env) (ReaderT (Map Text (UExprConstr env)) Parser) ()
 parserLoop = do
     e <- lift $ choice [ expr Nothing ]
     tell (UAssign e)
@@ -47,7 +47,7 @@ parserLoop = do
 parseEnd :: Parser ()
 parseEnd = skipSpace >> skip (== '}') >> skipSpace
 
-expr :: Maybe (UExpr env) -> ReaderT (Map Text (UExpr env)) Parser (UExpr env)
+expr :: Maybe (UExpr env) -> ReaderT (Map Text (UExprConstr env)) Parser (UExpr env)
 expr e = do
     trace (show e) $ return ()
     v <- choice [ name, subexpr, lift literal ]
@@ -63,7 +63,7 @@ expr e = do
         skipSpace
         return v
 
-subexpr :: ReaderT (Map Text (UExpr env)) Parser (UExpr env)
+subexpr :: ReaderT (Map Text (UExprConstr env)) Parser (UExpr env)
 subexpr = do
     lift $ do
         skip (== '(')
@@ -76,9 +76,9 @@ subexpr = do
 
 literal :: Parser (UExpr env)
 literal = choice [
-        (string "()" >> return (UConst EUnit ())),
-        fmap (UConst EInt) decimal,
-        fmap (UConst EFloat) double
+        (string "()" >> return (UConst "()" EUnit ())),
+        fmap (\lit -> UConst (Text.pack $ show lit) EInt lit) decimal,
+        fmap (\lit -> UConst (Text.pack $ show lit) EFloat lit) double
     ]
 
 maybeApp :: Maybe (UExpr env) -> UExpr env -> UExpr env
@@ -94,19 +94,19 @@ parseName = do
     rem <- takeWhile $ inClass "a-zA-Z0-9_"
     return (Text.cons init rem)
 
-findName :: Text -> ReaderT (Map Text (UExpr env)) Parser (UExpr env)
+findName :: Text -> ReaderT (Map Text (UExprConstr env)) Parser (UExpr env)
 findName name = do
     maybeVal <- asks $ Map.lookup name
     case maybeVal of
-        Just v -> return v
+        Just constr -> return $ mkUExpr constr name
         Nothing -> lift $ fail ("Undefined value: '" <> Text.unpack name <> "'.")
 
-primitives :: Map Text (UExpr env)
+primitives :: Map Text (UExprConstr env)
 primitives = Map.fromList [
-        ("unit",    UConst EUnit ()),
-        ("true",    UConst EBool True),
-        ("false",   UConst EBool False),
-        ("+",       UConst (EFun EInt (EFun EInt EInt)) (+)),
-        ("-",       UConst (EFun EInt (EFun EInt EInt)) (-)),
-        ("*",       UConst (EFun EInt (EFun EInt EInt)) (*))
+        ("unit",    CConst EUnit ()),
+        ("true",    CConst EBool True),
+        ("false",   CConst EBool False),
+        ("+",       CConst (EFun EInt (EFun EInt EInt)) (+)),
+        ("-",       CConst (EFun EInt (EFun EInt EInt)) (-)),
+        ("*",       CConst (EFun EInt (EFun EInt EInt)) (*))
     ]

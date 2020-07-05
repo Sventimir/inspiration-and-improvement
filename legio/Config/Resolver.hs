@@ -31,7 +31,7 @@ import Language.Resolvers.Compiler (compile)
 import Language.Resolvers.Expr (Expr(..), eval)
 import Language.Resolvers.Lexer (lexer)
 import Language.Resolvers.Types (EType(..))
-import Language.Resolvers.Unchecked (UExpr(..))
+import Language.Resolvers.Unchecked (UExpr, UExprConstr(..))
 
 import Prelude hiding (takeWhile)
 
@@ -103,11 +103,11 @@ asgnRout k (Res (split, enemy)) = Res (moveRight k split, enemy)
 asgnRestore :: Int -> Resolution -> Resolution
 asgnRestore k (Res (split, enemy)) = Res (moveLeft k split, enemy)
 
-primitives :: Map Text (UExpr Resolution)
+primitives :: Map Text (UExprConstr Resolution)
 primitives = Map.fromList [
-        ("damage",  UVar EInt $ \(Res (_, Enemy d _ _ _)) -> d),
-        ("kill",    UConst (EFun EInt EAlter) asgnKill),
-        ("rout",    UConst (EFun EInt EAlter) asgnRout),
-        ("rally",   UConst (EFun EInt EAlter) asgnRestore),
-        ("pass",    UConst EUnit ())
+        ("damage",  CVar EInt $ \(Res (_, Enemy d _ _ _)) -> d),
+        ("kill",    CConst (EFun EInt EAlter) asgnKill),
+        ("rout",    CConst (EFun EInt EAlter) asgnRout),
+        ("rally",   CConst (EFun EInt EAlter) asgnRestore),
+        ("pass",    CConst EUnit ())
     ]

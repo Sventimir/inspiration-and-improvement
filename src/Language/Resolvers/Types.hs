@@ -54,4 +54,4 @@ assertType expected actual = case testEquality expected actual of
 
 typeMismatch :: EType env a -> EType env b -> Text
 typeMismatch expected actual = "This expression should have type " <>
-    typeRepr expected <> "but it has type " <> typeRepr actual <> " instead."
+    typeRepr expected <> " but it has type " <> typeRepr actual <> " instead."
