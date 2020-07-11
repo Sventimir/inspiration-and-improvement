@@ -1,7 +1,6 @@
 {-# LANGUAGE GADTs, OverloadedStrings, TypeOperators #-}
 module Language.Resolvers.Types (
     EType(..),
-    assertType,
     typeRepr
 ) where
 
@@ -46,12 +45,3 @@ typeRepr (EFun a r) = typeRepr a <> " -> " <> typeRepr r
 
 instance Show (EType e a) where
     show = unpack . typeRepr
-
-assertType :: EType env a -> EType env b -> Either Text (a :~: b)
-assertType expected actual = case testEquality expected actual of
-    Just Refl -> return Refl
-    Nothing -> Left $ typeMismatch expected actual
-
-typeMismatch :: EType env a -> EType env b -> Text
-typeMismatch expected actual = "This expression should have type " <>
-    typeRepr expected <> " but it has type " <> typeRepr actual <> " instead."

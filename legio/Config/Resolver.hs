@@ -14,6 +14,7 @@ import Control.Monad.State (StateT, get, modify)
 import Control.Monad.State.Compose (Replaceable(..), Splitable(..), composeState, partialState)
 import Control.Monad.Trans.Either (EitherT, hoistEither)
 
+import Data.Bifunctor (Bifunctor(..))
 import Data.Card (Card(..), cardParser, count)
 import Data.CardSet (CardSet, deck, discard, hand)
 import Data.Either.Combinators (mapLeft)
@@ -26,7 +27,7 @@ import qualified Data.Text as Text
 import Data.Text.IO (readFile)
 import Data.Tuple.Extra (secondM)
 
-import Language.Resolvers.Compiler (compile)
+import Language.Resolvers.Compiler (compile, prettyError)
 import Language.Resolvers.Expr (Expr(..), eval)
 import Language.Resolvers.Lexer (Parser, body, lexeme, symbol)
 import Language.Resolvers.Types (EType(..))
@@ -82,7 +83,7 @@ loadResolver filename = do
     text <- liftIO $ readFile filename
     result <- liftIO $ Megaparsec.runParserT resolverParser filename text
     resolvers <- hoistEither $ mapLeft (Text.pack . errorBundlePretty) result
-    hoistEither . fmap Map.fromList . sequence $ fmap (secondM compile) resolvers
+    hoistEither . bimap (prettyError text) Map.fromList . sequence $ fmap (secondM compile) resolvers
 
 resolverParser :: Parser IO [((Card, Card), UExpr Resolution)]
 resolverParser = flip manyTill Megaparsec.eof $ do

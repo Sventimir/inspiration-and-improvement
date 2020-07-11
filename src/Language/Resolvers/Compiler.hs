@@ -1,65 +1,88 @@
-{-# LANGUAGE GADTs, OverloadedStrings #-}
+{-# LANGUAGE GADTs, OverloadedStrings, TypeOperators #-}
 module Language.Resolvers.Compiler (
     compile,
     infer,
+    prettyError,
     typeCheck
 ) where
 
 import Data.Text (Text)
-import Data.Type.Equality ((:~:)(..))
+import qualified Data.Text as Text
+import Data.Type.Equality ((:~:)(..), TestEquality(..))
 
 import Language.Resolvers.Expr (Expr(..))
-import Language.Resolvers.Types (EType(..), assertType, typeRepr)
-import Language.Resolvers.Unchecked (UExpr(..))
+import Language.Resolvers.Types (EType(..), typeRepr)
+import Language.Resolvers.Unchecked (Loc, UExpr(..), location)
 
+
+data CompileError where
+    NotAFunction :: Loc -> CompileError
+    TypeMismatch :: Loc -> EType env a -> EType env b -> CompileError
 
 data Term env where
     Term :: EType env a -> Expr env a -> Term env
 
 
-compile :: UExpr env -> Either Text (Expr env ())
+compile :: UExpr env -> Either CompileError (Expr env ())
 compile = typeCheck EUnit
 
-typeCheck :: EType env a -> UExpr env -> Either Text (Expr env a)
+typeCheck :: EType env a -> UExpr env -> Either CompileError (Expr env a)
 typeCheck expected uexpr = do
     Term t e <- infer uexpr
-    Refl <- assertType expected t
+    Refl <- assertType (location uexpr) expected t
     return e
 
-infer :: UExpr env -> Either Text (Term env)
-infer (UConst _ t a) = return $ Term t (Const a)
-infer (UVar _ t getter) = return $ Term t (Var getter)
+infer :: UExpr env -> Either CompileError (Term env)
+infer (UConst _ _ t a) = return $ Term t (Const a)
+infer (UVar _ _ t getter) = return $ Term t (Var getter)
 infer (UAssign uf) = do
     Term t f <- infer uf
-    Refl <- assertType EAlter t
+    Refl <- assertType (location uf) EAlter t
     return $ Term EUnit (Assign f)
-infer (UApp uf ua) = do
+infer (UApp loc uf ua) = do
     Term tf f <- infer uf
     case tf of
         EFun tArg tRet -> do
             Term ta a <- infer ua
-            Refl <- assertType tArg ta
+            Refl <- assertType loc tArg ta
             return $ Term tRet (App f a)
-        _ -> Left (typeRepr tf <> " is not a function type.")
+        _ -> Left . NotAFunction $ location uf
 infer (USeq ua ub) = do
     Term ta a <- infer ua
-    Refl <- assertType EUnit ta
+    Refl <- assertType (location ua) EUnit ta
     Term tb b <- infer ub
     case a of
         Const () -> return $ Term tb b
         _ -> return $ Term tb (Seq a b)
-infer (UIf cond ifSo ifNot) = do
+infer (UIf loc cond ifSo ifNot) = do
     Term tbool c <- infer cond
-    Refl <- assertType EBool tbool
+    Refl <- assertType loc EBool tbool
     Term tRet y <- infer ifSo
     Term tRet' n <- infer ifNot
-    Refl <- assertType tRet tRet'
+    Refl <- assertType (location ifNot) tRet tRet'
     return $ Term tRet (IfThenElse c y n)
-infer (UWhile cond ua) = do
+infer (UWhile loc cond ua) = do
     Term tbool c <- infer cond
-    Refl <- assertType EBool tbool
+    Refl <- assertType loc EBool tbool
     Term tunit a <- infer ua
-    Refl <- assertType EUnit tunit
+    Refl <- assertType (location ua) EUnit tunit
     case a of
         Const () -> return $ Term EUnit (Const ())
         _ -> return $ Term EUnit (While c a)
+
+assertType :: Loc -> EType env a -> EType env b -> Either CompileError (a :~: b)
+assertType loc expected actual = case testEquality expected actual of
+    Just Refl -> return Refl
+    Nothing -> Left $ TypeMismatch loc expected actual
+
+prettyError :: Text -> CompileError -> Text
+prettyError stream (NotAFunction (begin, end) ) =
+    let loc = Text.pack $ show begin in
+    "This expression is not a function, it cannot be applied:\n\t" <>
+    loc <> " | ... " <> (Text.drop begin $ Text.take end stream) <> " ..."
+prettyError stream (TypeMismatch (begin, end) expected actual) =
+    let loc = Text.pack $ show begin in
+    "Type mismatch at character #" <> loc <>
+    ".\nExpected: " <> typeRepr expected <>
+    ".\nActual: " <> typeRepr actual <>
+    ".\n\t" <> loc <> " | ... " <> (Text.drop begin $ Text.take end stream) <> " ..."

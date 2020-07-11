@@ -6,7 +6,6 @@ module Language.Resolvers.Expr (
 
 import Control.Monad.State (MonadState, gets, modify)
 
-
 -- Type-checked and compiled expression ready for evaluation.
 data Expr env a where
     Const :: a -> Expr env a
