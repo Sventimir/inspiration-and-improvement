@@ -7,14 +7,13 @@ module Config.Resolver (
 ) where
 
 import Control.Applicative ((<|>))
+import Control.Monad.Combinators (manyTill)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, get, modify)
 import Control.Monad.State.Compose (Replaceable(..), Splitable(..), composeState, partialState)
 import Control.Monad.Trans.Either (EitherT, hoistEither)
 
-import Data.Attoparsec.Text (Parser, choice, decimal, eitherResult, inClass, many',
-        many1', parseWith, skip, skipSpace, string, takeWhile)
 import Data.Card (Card(..), cardParser, count)
 import Data.CardSet (CardSet, deck, discard, hand)
 import Data.Either.Combinators (mapLeft)
@@ -24,18 +23,23 @@ import Data.Maybe (fromMaybe)
 import Data.Split (Split, moveLeft, moveRight, removeLeft)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Text.IO (hGetChunk)
+import Data.Text.IO (readFile)
 import Data.Tuple.Extra (secondM)
 
 import Language.Resolvers.Compiler (compile)
 import Language.Resolvers.Expr (Expr(..), eval)
-import Language.Resolvers.Lexer (lexer)
+import Language.Resolvers.Lexer (Parser, body, lexeme, symbol)
 import Language.Resolvers.Types (EType(..))
 import Language.Resolvers.Unchecked (UExpr, UExprConstr(..))
 
-import Prelude hiding (takeWhile)
+import Prelude hiding (takeWhile, readFile)
 
-import System.IO (FilePath, IOMode(..), openFile)
+import Text.Megaparsec (ParsecT, runParserT)
+import qualified Text.Megaparsec as Megaparsec
+import qualified Text.Megaparsec.Char.Lexer as Lexer
+import Text.Megaparsec.Error (errorBundlePretty)
+
+import System.IO (FilePath, IOMode(..))
 
 import UI.Player (Enemy(..), Player(..), cardSet, damage, legio)
 
@@ -75,22 +79,17 @@ enemyFromPlayer (Player p) =
 
 loadResolver :: FilePath -> EitherT Text IO Resolver
 loadResolver filename = do
-    file <- liftIO $ openFile filename ReadMode
-    c <- liftIO $ hGetChunk file
-    result <- liftIO $ parseWith (hGetChunk file) resolverParser c
-    resolvers <- hoistEither . mapLeft Text.pack $ eitherResult result
+    text <- liftIO $ readFile filename
+    result <- liftIO $ Megaparsec.runParserT resolverParser filename text
+    resolvers <- hoistEither $ mapLeft (Text.pack . errorBundlePretty) result
     hoistEither . fmap Map.fromList . sequence $ fmap (secondM compile) resolvers
 
-resolverParser :: Parser [((Card, Card), UExpr Resolution)]
-resolverParser = many1' $ do
-    leftCard <- cardParser
-    skipSpace
-    skip (== ':')
-    skipSpace
-    rightCard <- cardParser
-    skipSpace
-    body <- lexer primitives
-    skipSpace
+resolverParser :: Parser IO [((Card, Card), UExpr Resolution)]
+resolverParser = flip manyTill Megaparsec.eof $ do
+    leftCard <- lexeme cardParser
+    symbol ":"
+    rightCard <- lexeme cardParser
+    body <- body primitives
     return ((leftCard, rightCard), body)
 
 

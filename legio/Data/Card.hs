@@ -1,9 +1,13 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
 module Data.Card where
 
-import Data.Attoparsec.Text (Parser, choice, string)
 import Data.CardSet (Selector(..))
 import Data.List (find, foldl')
+
+import Language.Resolvers.Lexer (Parser)
+
+import Text.Megaparsec (choice)
+import Text.Megaparsec.Char (string)
 
 
 data Card = Attack | Defend | Rally
@@ -27,7 +31,7 @@ count = foldl' incr (0, 0, 0)
     incr (a, d, r) Defend = (a, succ d, r)
     incr (a, d, r) Rally  = (a, d, succ r)
 
-cardParser :: Parser Card
+cardParser :: Monad m => Parser m Card
 cardParser = choice [
         string "Attack" >> return Attack,
         string "Defend" >> return Defend,

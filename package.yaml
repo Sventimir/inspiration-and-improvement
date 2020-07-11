@@ -24,8 +24,10 @@ library:
     - attoparsec
     - containers
     - extra
+    - megaparsec
     - MonadRandom
     - mtl
+    - parser-combinators
     - random-shuffle
     - text
     - transformers
@@ -45,8 +47,10 @@ executables:
     - either
     - extra
     - legio
+    - megaparsec
     - MonadRandom
     - mtl
+    - parser-combinators
     - random
     - text
     - transformers

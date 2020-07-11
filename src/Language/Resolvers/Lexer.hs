@@ -1,112 +1,106 @@
-{-# LANGUAGE GADTs, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts, GADTs, OverloadedStrings, ScopedTypeVariables #-}
 module Language.Resolvers.Lexer (
-    lexer
+    Parser,
+    body,
+    lexeme,
+    space,
+    symbol
 ) where
 
-import Control.Applicative ((<|>))
+import Control.Applicative ((<|>), (<$), optional)
+import Control.Monad.Combinators (many, sepBy)
+import Control.Monad.Combinators.Expr (Operator(..))
+import qualified Control.Monad.Combinators.Expr as Parser
 import Control.Monad.Trans (lift)
 import Control.Monad.Reader (ReaderT, runReaderT, asks)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 
-import Data.Attoparsec.Text (Parser, choice, decimal, double, inClass, satisfy,
-        skip, skipSpace, string, takeWhile)
 import Data.Char (isSpace)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Void (Void)
 
 import Language.Resolvers.Types (EType(..))
-import Language.Resolvers.Unchecked (UExpr(..), UExprConstr(..), mkUExpr, precedence)
+import Language.Resolvers.Unchecked (UExpr(..), UExprConstr(..), mkUExpr)
+
+import Text.Megaparsec (MonadParsec, ParsecT)
+import qualified Text.Megaparsec as Megaparsec
+import qualified Text.Megaparsec.Char as Megaparsec
+import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 import Prelude hiding (takeWhile)
 import Debug.Trace
 
 
-instance Semigroup (UExpr env) where
-    (UConst "()" EUnit ()) <> e = e
-    l <> r = USeq l r
+type Parser = ParsecT Void Text
 
-instance Monoid (UExpr env) where
-    mempty = UConst "()" EUnit ()
+space :: MonadParsec e Text m => m ()
+space = Lexer.space
+    Megaparsec.space1
+    (Lexer.skipLineComment "#")
+    (Lexer.skipBlockComment "{-" "-}")
 
+symbol :: MonadParsec e Text m => Text -> m Text
+symbol = Lexer.symbol space
 
-lexer :: Map Text (UExprConstr env) -> Parser (UExpr env)
-lexer prims = do
-    skipSpace
-    skip (== '{')
-    skipSpace
-    runReaderT (execWriterT parserLoop) $ Map.union primitives prims
+lexeme :: MonadParsec e Text m => m a -> m a
+lexeme = Lexer.lexeme space
 
-parserLoop :: WriterT (UExpr env) (ReaderT (Map Text (UExprConstr env)) Parser) ()
-parserLoop = do
-    e <- lift $ choice [ expr Nothing ]
-    tell (UAssign e)
-    (lift . lift $ parseEnd) <|> parserLoop
+body :: Monad m => Map Text (UExprConstr env) -> Parser m (UExpr env)
+body prims = Megaparsec.between (symbol "{") (symbol "}") $
+        runReaderT langParser $ Map.union primitives prims
 
-parseEnd :: Parser ()
-parseEnd = skipSpace >> skip (== '}') >> skipSpace
+langParser :: Monad m => ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
+langParser = do
+    expr <- sepBy exprParser $ symbol ";"
+    return $ case expr of
+        [] -> UConst "()" EUnit ()
+        es -> foldl1 USeq $ map UAssign es
 
-expr :: Maybe (UExpr env) -> ReaderT (Map Text (UExprConstr env)) Parser (UExpr env)
-expr e = do
-    trace (show e) $ return ()
-    v <- choice [ name, subexpr, lift literal ]
-    lift skipSpace
-    choice [
-            lift . endOfExpr $ maybeApp e v,
-            expr $ Just (maybeApp e v)
-        ]
-    where
-    name = lift (parseName <|> parseSymbol) >>= findName
-    endOfExpr v = do
-        skip (inClass ";)")
-        skipSpace
-        return v
-
-subexpr :: ReaderT (Map Text (UExprConstr env)) Parser (UExpr env)
-subexpr = do
-    lift $ do
-        skip (== '(')
-        skipSpace
-    e <- expr Nothing
-    lift $ do
-        skipSpace
-        trace "Reaced )" $ return ()
-    return e
-
-literal :: Parser (UExpr env)
-literal = choice [
-        (string "()" >> return (UConst "()" EUnit ())),
-        fmap (\lit -> UConst (Text.pack $ show lit) EInt lit) decimal,
-        fmap (\lit -> UConst (Text.pack $ show lit) EFloat lit) double
+exprParser :: Monad m => ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
+exprParser = flip Parser.makeExprParser operators $ Megaparsec.choice [
+        Megaparsec.between (symbol "(") (symbol ")") exprParser,
+        Megaparsec.try termParser,
+        lift literal
     ]
 
-maybeApp :: Maybe (UExpr env) -> UExpr env -> UExpr env
-maybeApp Nothing arg = arg
-maybeApp (Just f) arg = UApp f arg
+termParser :: Monad m => ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
+termParser = lexeme $ do
+    c <- Megaparsec.letterChar
+    cs <- fmap Text.pack $ many Megaparsec.alphaNumChar
+    findName (Text.cons c cs)
 
-parseSymbol :: Parser Text
-parseSymbol = takeWhile (\c -> not (inClass "a-zA-Z0-9_(){}[]" c || isSpace c))
+literal :: Monad m => Parser m (UExpr env)
+literal = lexeme $ Megaparsec.choice [
+        (Megaparsec.string "()" >> return (UConst "()" EUnit ())),
+        fmap (\lit -> UConst (Text.pack $ show lit) EInt lit) Lexer.decimal,
+        fmap (\lit -> UConst (Text.pack $ show lit) EFloat lit) Lexer.float
+    ]
 
-parseName :: Parser Text
-parseName = do
-    init <- satisfy $ inClass "a-zA-Z_"
-    rem <- takeWhile $ inClass "a-zA-Z0-9_"
-    return (Text.cons init rem)
-
-findName :: Text -> ReaderT (Map Text (UExprConstr env)) Parser (UExpr env)
+findName :: Monad m => Text -> ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
 findName name = do
     maybeVal <- asks $ Map.lookup name
     case maybeVal of
         Just constr -> return $ mkUExpr constr name
         Nothing -> lift $ fail ("Undefined value: '" <> Text.unpack name <> "'.")
 
+operators :: MonadParsec e Text m => [[Operator m (UExpr env)]]
+operators = [
+        [ InfixL (app "+" $ UConst "(+)" (EFun EInt (EFun EInt EInt)) (+)),
+          InfixL (app "-" $ UConst "(-)" (EFun EInt (EFun EInt EInt)) (-))
+        ],
+        [ InfixL (app "*" $ UConst "(*)" (EFun EInt (EFun EInt EInt)) (*)) ],
+        [ InfixL (UApp <$ symbol "") ]
+    ]
+    where
+    app :: MonadParsec e Text m => Text -> UExpr env -> m (UExpr env -> UExpr env -> UExpr env)
+    app s op = (\a b -> UApp (UApp op a) b) <$ symbol s
+
 primitives :: Map Text (UExprConstr env)
 primitives = Map.fromList [
         ("unit",    CConst EUnit ()),
         ("true",    CConst EBool True),
-        ("false",   CConst EBool False),
-        ("+",       CConst (EFun EInt (EFun EInt EInt)) (+)),
-        ("-",       CConst (EFun EInt (EFun EInt EInt)) (-)),
-        ("*",       CConst (EFun EInt (EFun EInt EInt)) (*))
+        ("false",   CConst EBool False)
     ]

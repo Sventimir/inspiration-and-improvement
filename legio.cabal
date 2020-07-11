@@ -43,7 +43,9 @@ library
     , base >=4.7 && <5
     , containers
     , extra
+    , megaparsec
     , mtl
+    , parser-combinators
     , random-shuffle
     , text
     , transformers
@@ -82,7 +84,9 @@ executable legio
     , either
     , extra
     , legio
+    , megaparsec
     , mtl
+    , parser-combinators
     , random
     , text
     , transformers

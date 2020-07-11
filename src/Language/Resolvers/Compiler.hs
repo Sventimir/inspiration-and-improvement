@@ -28,7 +28,6 @@ typeCheck expected uexpr = do
 
 infer :: UExpr env -> Either Text (Term env)
 infer (UConst _ t a) = return $ Term t (Const a)
-infer (UOper _ t f _) = return $ Term t (Const f)
 infer (UVar _ t getter) = return $ Term t (Var getter)
 infer (UAssign uf) = do
     Term t f <- infer uf
