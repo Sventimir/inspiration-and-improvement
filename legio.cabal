@@ -40,7 +40,6 @@ library
   build-depends:
       MonadRandom
     , base >=4.7 && <5
-    , bifunctors
     , containers
     , extra
     , megaparsec

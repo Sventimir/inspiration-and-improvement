@@ -21,7 +21,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-    - bifunctors
     - containers
     - extra
     - megaparsec
