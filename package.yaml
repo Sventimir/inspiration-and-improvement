@@ -21,7 +21,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-    - attoparsec
     - bifunctors
     - containers
     - extra
@@ -43,7 +42,6 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - attoparsec
     - containers
     - either
     - extra
