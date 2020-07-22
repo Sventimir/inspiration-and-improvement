@@ -4,7 +4,7 @@ module Data.Card where
 import Data.CardSet (Selector(..))
 import Data.List (find, foldl')
 
-import Language.Resolvers.Lexer (Parser)
+import Language.Resolvers.Parser (Parser)
 
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (string)

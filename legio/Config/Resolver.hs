@@ -29,7 +29,7 @@ import Data.Tuple.Extra (secondM)
 
 import Language.Resolvers.Compiler (compile, prettyError)
 import Language.Resolvers.Expr (Expr(..), eval)
-import Language.Resolvers.Lexer (Parser, body, lexeme, symbol)
+import Language.Resolvers.Parser (Parser, body, lexeme, symbol)
 import Language.Resolvers.Types (EType(..))
 import Language.Resolvers.Unchecked (UExpr, UExprConstr(..))
 

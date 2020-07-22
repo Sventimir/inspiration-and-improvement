@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts, GADTs, OverloadedStrings, ScopedTypeVariables #-}
-module Language.Resolvers.Lexer (
+module Language.Resolvers.Parser (
     Parser,
     body,
     lexeme,

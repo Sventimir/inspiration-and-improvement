@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e1011965518106a75aca077c97efa4c7f42a2c25717c3e5cc3d71b548391aca1
+-- hash: 88e00ad7d64323a88fe5a2fe13d5a7e2346728df884b99d4bca05920490981ee
 
 name:           legio
 version:        0.2.0.0
@@ -32,7 +32,7 @@ library
       Data.Split
       Language.Resolvers.Compiler
       Language.Resolvers.Expr
-      Language.Resolvers.Lexer
+      Language.Resolvers.Parser
       Language.Resolvers.Types
       Language.Resolvers.Unchecked
   other-modules:
