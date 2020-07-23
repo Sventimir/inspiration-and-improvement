@@ -15,6 +15,7 @@ data EType env a where
     EInt :: EType env Int
     EFloat :: EType env Double
     EAlter :: EType env (env -> env)
+    EPair :: EType env a -> EType env b -> EType env (a, b)
     EList :: EType env a -> EType env [a]
     EFun :: EType env a -> EType env b -> EType env (a -> b)
 
@@ -24,6 +25,10 @@ instance TestEquality (EType env) where
     testEquality EInt EInt = Just Refl
     testEquality EFloat EFloat = Just Refl
     testEquality EUnit EUnit = Just Refl
+    testEquality (EPair a b) (EPair c d) = do
+        Refl <- testEquality a c
+        Refl <- testEquality b d
+        Just Refl
     testEquality EAlter EAlter = Just Refl
     testEquality (EList a) (EList b) = do
         Refl <- testEquality a b
@@ -40,6 +45,7 @@ typeRepr EInt = "Int"
 typeRepr EFloat = "Float"
 typeRepr EUnit = "Unit"
 typeRepr EAlter = "Alternator"
+typeRepr (EPair a b) = "(" <> typeRepr a <> ", " <> typeRepr b <> ")"
 typeRepr (EList t) = "List of " <> typeRepr t
 typeRepr (EFun a r) = typeRepr a <> " -> " <> typeRepr r
 

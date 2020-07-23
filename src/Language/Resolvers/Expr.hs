@@ -15,6 +15,7 @@ data Expr env a where
     Seq :: Expr env () -> Expr env b -> Expr env b
     IfThenElse :: Expr env Bool -> Expr env a -> Expr env a -> Expr env a
     While :: Expr env Bool -> Expr env () -> Expr env ()
+    Pair :: Expr env a -> Expr env b -> Expr env (a, b)
 
 eval :: MonadState env m => Expr env a -> m a
 eval (Const a) = return a
@@ -28,3 +29,7 @@ eval (IfThenElse cond ifSo ifNot) = do
 eval w@(While cond ifSo) = do
     c <- eval cond
     if c then (eval ifSo >> eval w) else return ()
+eval (Pair left right) = do
+    l <- eval left
+    r <- eval right
+    return (l, r)

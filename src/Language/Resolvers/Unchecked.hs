@@ -33,6 +33,7 @@ data UExpr env where
     USeq :: UExpr env -> UExpr env -> UExpr env
     UIf :: Loc -> UExpr env -> UExpr env -> UExpr env -> UExpr env
     UWhile :: Loc -> UExpr env -> UExpr env -> UExpr env
+    UPair :: Loc -> UExpr env -> UExpr env -> UExpr env
 
 instance Show (UExpr e) where
     show (UConst _ n _ _) = unpack n
@@ -42,6 +43,7 @@ instance Show (UExpr e) where
     show (USeq a b) = show a <> "; " <> show b
     show (UIf _ b y n) = "IF (" <> show b <> ") THEN (" <> show y <> ") ELSE (" <> show n <> ")"
     show (UWhile _ b a) = "WHILE (" <> show b <> ") DO (" <> show a <> ")"
+    show (UPair _ a b) = "(" <> show a <> ", " <> show b <> ")"
 
 
 showFull :: UExpr env -> String
@@ -52,6 +54,7 @@ showFull (UApp _ f a) = "(" <> showFull f <> " <- " <> showFull a <> ")"
 showFull (USeq a b) = showFull a <> "; " <> showFull b
 showFull (UIf _ b y n) = "IF (" <> showFull b <> ") THEN (" <> showFull y <> ") ELSE (" <> showFull n <> ")"
 showFull (UWhile _ b a) = "WHILE (" <> showFull b <> ") DO (" <> showFull a <> ")"
+showFill (UPair _ a b) = "(" <> showFull a <> ", " <> showFull b <> ")"
 
 mkUExpr :: UExprConstr env -> Loc -> Text -> UExpr env
 mkUExpr (CConst t a) l n = UConst l n t a
@@ -65,3 +68,4 @@ location (UApp l _ _) = l
 location (USeq e _) = location e
 location (UIf l _ _ _) = l
 location (UWhile l _ _) = l
+location (UPair l _ _) = l

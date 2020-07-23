@@ -69,6 +69,10 @@ infer (UWhile loc cond ua) = do
     case a of
         Const () -> return $ Term EUnit (Const ())
         _ -> return $ Term EUnit (While c a)
+infer (UPair loc left right) = do
+    Term tl l <- infer left
+    Term tr r <- infer right
+    return $ Term (EPair tl tr) (Pair l r)
 
 assertType :: Loc -> EType env a -> EType env b -> Either CompileError (a :~: b)
 assertType loc expected actual = case testEquality expected actual of

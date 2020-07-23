@@ -62,7 +62,7 @@ langParser = do
 
 exprParser :: Monad m => ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
 exprParser = flip Parser.makeExprParser operators $ Megaparsec.choice [
-        Megaparsec.between (symbol "(") (symbol ")") exprParser,
+        Megaparsec.try tupleParser,
         Megaparsec.try termParser,
         lift literal
     ]
@@ -77,13 +77,10 @@ termParser = lexeme (withPosition parseName >>= findName)
 
 literal :: Monad m => Parser m (UExpr env)
 literal = lexeme $ Megaparsec.choice [
-        Megaparsec.try (mkUnit <$> (withPosition $ symbol "()")),
         Megaparsec.try (mkLit EFloat <$> literalParser Lexer.float),
         mkLit EInt <$> literalParser Lexer.decimal
     ]
     where
-    mkUnit :: (a, Loc) -> UExpr env
-    mkUnit (_, loc) = UConst loc "()" EUnit ()
     mkLit :: EType env a -> (a, Text, Loc) -> UExpr env
     mkLit t (lit, txt, loc) = UConst loc txt t lit
 
@@ -92,6 +89,16 @@ literalParser p = do
     (lit, (bgn, end)) <- Megaparsec.lookAhead $ withPosition p
     txt <- Megaparsec.takeP Nothing (end - bgn)
     return (lit, txt, (bgn, end))
+
+tupleParser :: Monad m => ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
+tupleParser = fmap mkTuple .
+    withPosition . Megaparsec.between (symbol "(") (symbol ")") $
+        sepBy exprParser (symbol ",")
+    where
+    mkTuple :: ([UExpr env], Loc) -> UExpr env
+    mkTuple ([], loc) = UConst loc "()" EUnit ()
+    mkTuple ([e], _) = e
+    mkTuple ((e : es), loc) = UPair loc e $ mkTuple (es, loc)
 
 
 findName :: Monad m => (Text, Loc) -> ReaderT (Map Text (UExprConstr env)) (Parser m) (UExpr env)
