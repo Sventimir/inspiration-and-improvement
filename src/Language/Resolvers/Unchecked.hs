@@ -43,7 +43,7 @@ instance Show (UExpr e) where
     show (USeq a b) = show a <> "; " <> show b
     show (UIf _ b y n) = "IF (" <> show b <> ") THEN (" <> show y <> ") ELSE (" <> show n <> ")"
     show (UWhile _ b a) = "WHILE (" <> show b <> ") DO (" <> show a <> ")"
-    show (UPair _ a b) = "(" <> show a <> ", " <> show b <> ")"
+    show p@(UPair _ _ _) = "(" <> showTuple show p <> ")"
 
 
 showFull :: UExpr env -> String
@@ -54,7 +54,11 @@ showFull (UApp _ f a) = "(" <> showFull f <> " <- " <> showFull a <> ")"
 showFull (USeq a b) = showFull a <> "; " <> showFull b
 showFull (UIf _ b y n) = "IF (" <> showFull b <> ") THEN (" <> showFull y <> ") ELSE (" <> showFull n <> ")"
 showFull (UWhile _ b a) = "WHILE (" <> showFull b <> ") DO (" <> showFull a <> ")"
-showFill (UPair _ a b) = "(" <> showFull a <> ", " <> showFull b <> ")"
+showFull p@(UPair _ _ _) = "(" <> showTuple showFull p <> ")"
+
+showTuple :: (UExpr env -> String) -> UExpr env -> String
+showTuple f (UPair _ l r) = f l <> ", " <> showTuple f r
+showTuple f e = f e
 
 mkUExpr :: UExprConstr env -> Loc -> Text -> UExpr env
 mkUExpr (CConst t a) l n = UConst l n t a

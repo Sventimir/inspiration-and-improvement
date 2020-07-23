@@ -45,9 +45,13 @@ typeRepr EInt = "Int"
 typeRepr EFloat = "Float"
 typeRepr EUnit = "Unit"
 typeRepr EAlter = "Alternator"
-typeRepr (EPair a b) = "(" <> typeRepr a <> ", " <> typeRepr b <> ")"
+typeRepr p@(EPair _ _) = "(" <> typeList p <> ")"
 typeRepr (EList t) = "List of " <> typeRepr t
 typeRepr (EFun a r) = typeRepr a <> " -> " <> typeRepr r
 
 instance Show (EType e a) where
     show = unpack . typeRepr
+
+typeList :: EType env a -> Text
+typeList (EPair l r) = typeRepr l <> ", " <> typeList r
+typeList t = typeRepr t
